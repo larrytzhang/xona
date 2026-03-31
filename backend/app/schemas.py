@@ -14,7 +14,7 @@ Used by:
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 # ---------------------------------------------------------------------------
@@ -67,8 +67,7 @@ class ZoneResponse(BaseModel):
     signal_advantage_db: Optional[float] = None
     area_reduction_pct: Optional[float] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ZonesLiveResponse(BaseModel):
@@ -159,8 +158,7 @@ class EventResponse(BaseModel):
     severity_label: str
     flags: list[AnomalyFlagResponse]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ZoneDetailResponse(BaseModel):
@@ -270,8 +268,7 @@ class FindingResponse(BaseModel):
     value: str
     detail: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class FindingsResponse(BaseModel):
