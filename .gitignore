@@ -35,6 +35,9 @@ out/
 htmlcov/
 .pytest_cache/
 
+# Linting
+.ruff_cache/
+
 # Logs
 *.log
 
