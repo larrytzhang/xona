@@ -348,6 +348,8 @@ async def get_stats() -> dict:
         "by_type": {
             "spoofing": by_type_dict.get("spoofing", 0),
             "jamming": by_type_dict.get("jamming", 0),
+            # DB stores unclassified events as 'anomaly'; API surfaces as 'mixed'
+            # to match the zone-level terminology in the frontend.
             "mixed": by_type_dict.get("anomaly", 0),
         },
         "avg_severity": round(float(avg_severity), 1),

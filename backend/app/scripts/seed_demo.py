@@ -26,7 +26,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.database import async_session, engine
 from app.models import AnomalyEvent, Base, InterferenceZone
-from app.detection.internal.zones import KNOWN_ZONES, REGION_NAMES
+from app.detection import KNOWN_ZONES, REGION_NAMES
 from app.pulsar.interfaces.specs import (
     AREA_REDUCTION_PCT,
     RADIUS_REDUCTION_FACTOR,

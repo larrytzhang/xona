@@ -46,7 +46,7 @@ async def _live_polling_task() -> None:
     This task runs for the lifetime of the FastAPI process and handles
     errors gracefully (logs and retries on next interval).
     """
-    from app.detection.internal.pipeline import AnomalyPipeline
+    from app.detection import AnomalyPipeline
     from app.ingestion import OpenSkyClient
     from app.database import async_session
     from app.models import InterferenceZone

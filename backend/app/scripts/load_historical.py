@@ -26,7 +26,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from app.database import async_session, engine
-from app.detection.internal.pipeline import AnomalyPipeline
+from app.detection import AnomalyPipeline
 from app.ingestion import OpenSkyClient
 from app.models import AnomalyEvent, Base, InterferenceZone
 

@@ -24,7 +24,7 @@ from sqlalchemy import func, select, text
 
 from app.database import async_session, engine
 from app.models import AnomalyEvent, Base, Finding, RegionStat
-from app.detection.internal.zones import REGION_NAMES
+from app.detection import REGION_NAMES
 
 logger = logging.getLogger(__name__)
 

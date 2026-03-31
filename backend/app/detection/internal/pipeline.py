@@ -41,7 +41,7 @@ from app.detection.internal.detectors import (
 from app.detection.internal.scorer import compute_severity
 from app.detection.internal.window import StateWindowManager
 from app.detection.internal.zones import classify_zone
-from app.pulsar.internal.modeler import compute_pulsar_mitigation
+from app.pulsar import compute_pulsar_mitigation
 
 
 class AnomalyPipeline:
@@ -155,11 +155,17 @@ class AnomalyPipeline:
         # Step 6: Cluster anomalies spatially.
         clusters = cluster_anomalies(anomalies)
 
-        # Mark clustered anomalies and boost confidence.
+        # Mark clustered anomalies and apply cluster confidence boost (Part 7.8).
+        # Boost = min(0.3, 0.05 * (cluster_size - 2))
         for cluster in clusters:
             if len(cluster) >= 3:
+                cluster_size = len(cluster)
+                confidence_boost = min(0.3, 0.05 * (cluster_size - 2))
                 for anomaly in cluster:
                     anomaly.detection.is_clustered = True
+                    # Boost each flag's confidence by the cluster factor.
+                    for flag in anomaly.detection.flags:
+                        flag.confidence = min(1.0, flag.confidence + confidence_boost)
 
         # Step 7: Detect signal loss events.
         signal_loss_zones = detect_signal_loss(
