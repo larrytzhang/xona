@@ -6,6 +6,12 @@ manager. Later steps will add detector, classifier, and scorer tests.
 """
 
 from app.detection.interfaces.models import AircraftState
+from app.detection.internal.detectors import (
+    detect_altitude,
+    detect_heading,
+    detect_position_jump,
+    detect_velocity,
+)
 from app.detection.internal.geo import angular_difference, compute_bearing, haversine
 from app.detection.internal.window import StateWindowManager
 from app.detection.internal.zones import classify_zone
@@ -206,3 +212,192 @@ class TestStateWindowManager:
         assert wm.get_anomaly_count("ABC123") == 2
         wm.reset_anomaly_count("ABC123")
         assert wm.get_anomaly_count("ABC123") == 0
+
+
+# =========================================================================
+# Velocity detector
+# =========================================================================
+
+
+def _make_state(**kwargs) -> AircraftState:
+    """
+    Helper to create AircraftState with sensible defaults.
+
+    Args:
+        **kwargs: Override any AircraftState field.
+
+    Returns:
+        AircraftState instance.
+    """
+    defaults = dict(
+        icao24="ABC123", latitude=50.0, longitude=10.0,
+        timestamp=1000, last_contact=1000,
+        velocity=250.0, true_track=90.0,
+        baro_altitude=10000.0, geo_altitude=10000.0,
+    )
+    defaults.update(kwargs)
+    return AircraftState(**defaults)
+
+
+class TestVelocityDetector:
+    """Tests for the impossible velocity detector."""
+
+    def test_normal_velocity_no_flags(self):
+        """Normal 250 m/s velocity should produce no flags."""
+        prev = _make_state(timestamp=990)
+        curr = _make_state(timestamp=1000, velocity=250.0)
+        flags = detect_velocity(curr, prev)
+        assert len(flags) == 0
+
+    def test_supersonic_velocity_flags(self):
+        """500 m/s velocity should flag with confidence ~0.44."""
+        prev = _make_state(timestamp=990, velocity=250.0)
+        curr = _make_state(timestamp=1000, velocity=500.0)
+        flags = detect_velocity(curr, prev)
+        # Should have at least the reported velocity flag.
+        velocity_flags = [f for f in flags if f.detector == "velocity" and f.value == 500.0]
+        assert len(velocity_flags) == 1
+        assert abs(velocity_flags[0].confidence - 0.44) < 0.05
+
+    def test_derived_velocity_flag(self):
+        """50 km position change in 5 seconds -> derived 10000 m/s, should flag."""
+        prev = _make_state(timestamp=995, latitude=50.0, longitude=10.0)
+        # Move ~50 km east (roughly 0.65 degrees at lat 50)
+        curr = _make_state(timestamp=1000, latitude=50.0, longitude=10.65, velocity=250.0)
+        flags = detect_velocity(curr, prev)
+        derived_flags = [f for f in flags if f.threshold == 400.0]
+        assert len(derived_flags) >= 1
+
+    def test_acceleration_flag(self):
+        """Velocity jump from 100 to 400 in 1 second (300 m/s²) should flag."""
+        prev = _make_state(timestamp=999, velocity=100.0)
+        curr = _make_state(timestamp=1000, velocity=400.0)
+        flags = detect_velocity(curr, prev)
+        accel_flags = [f for f in flags if "cceleration" in f.detail]
+        assert len(accel_flags) >= 1
+
+
+# =========================================================================
+# Position jump detector
+# =========================================================================
+
+
+class TestPositionJumpDetector:
+    """Tests for the position jump (teleportation) detector."""
+
+    def test_normal_movement_no_flags(self):
+        """Normal 2.5 km movement in 10 seconds at 250 m/s: no flags."""
+        prev = _make_state(timestamp=990, latitude=50.0, longitude=10.0)
+        curr = _make_state(timestamp=1000, latitude=50.02, longitude=10.0)
+        flags = detect_position_jump(curr, prev)
+        assert len(flags) == 0
+
+    def test_teleportation_flags(self):
+        """50 km jump in 5 seconds at normal speed: should flag."""
+        prev = _make_state(timestamp=995, latitude=50.0, longitude=10.0, velocity=250.0)
+        curr = _make_state(timestamp=1000, latitude=50.45, longitude=10.0, velocity=250.0)
+        flags = detect_position_jump(curr, prev)
+        assert len(flags) >= 1
+        assert flags[0].detector == "position_jump"
+
+    def test_absolute_jump_limit(self):
+        """Jump > 50 km should flag even with high speed."""
+        prev = _make_state(timestamp=990, latitude=50.0, longitude=10.0, velocity=340.0)
+        # ~100 km jump
+        curr = _make_state(timestamp=1000, latitude=50.9, longitude=10.0, velocity=340.0)
+        flags = detect_position_jump(curr, prev)
+        assert len(flags) >= 1
+
+
+# =========================================================================
+# Altitude detector
+# =========================================================================
+
+
+class TestAltitudeDetector:
+    """Tests for the altitude inconsistency detector."""
+
+    def test_normal_altitude_no_flags(self):
+        """Normal matching baro/geo altitudes: no flags."""
+        prev = _make_state(timestamp=990, baro_altitude=10000, geo_altitude=10050)
+        curr = _make_state(timestamp=1000, baro_altitude=10000, geo_altitude=10050)
+        flags = detect_altitude(curr, prev)
+        assert len(flags) == 0
+
+    def test_baro_geo_divergence_flags(self):
+        """300 m baro-geo divergence should flag."""
+        prev = _make_state(timestamp=990, baro_altitude=10000, geo_altitude=10000)
+        curr = _make_state(timestamp=1000, baro_altitude=10000, geo_altitude=10300)
+        flags = detect_altitude(curr, prev)
+        div_flags = [f for f in flags if f.detector == "altitude" and f.threshold == 200.0]
+        assert len(div_flags) >= 1
+
+    def test_altitude_rate_spike(self):
+        """200 m/s altitude change should flag."""
+        prev = _make_state(timestamp=999, geo_altitude=10000, baro_altitude=10000)
+        curr = _make_state(timestamp=1000, geo_altitude=10200, baro_altitude=10200)
+        flags = detect_altitude(curr, prev)
+        rate_flags = [f for f in flags if "rate" in f.detail]
+        assert len(rate_flags) >= 1
+
+    def test_divergence_trend(self):
+        """Growing divergence over 60 seconds should flag."""
+        # Build a window with growing divergence.
+        window = []
+        for i in range(7):
+            t = 940 + i * 10
+            window.append(_make_state(
+                timestamp=t,
+                baro_altitude=10000,
+                geo_altitude=10000 + i * 30,  # growing divergence
+            ))
+        prev = window[-1]
+        curr = _make_state(
+            timestamp=1010,
+            baro_altitude=10000,
+            geo_altitude=10250,
+        )
+        flags = detect_altitude(curr, prev, window=window)
+        trend_flags = [f for f in flags if "grew" in f.detail]
+        assert len(trend_flags) >= 1
+
+
+# =========================================================================
+# Heading detector
+# =========================================================================
+
+
+class TestHeadingDetector:
+    """Tests for the heading vs. trajectory mismatch detector."""
+
+    def test_consistent_heading_no_flags(self):
+        """Heading matches trajectory: no flags."""
+        # Moving north, heading 0.
+        prev = _make_state(timestamp=990, latitude=50.0, longitude=10.0, true_track=0.0)
+        curr = _make_state(timestamp=1000, latitude=50.1, longitude=10.0, true_track=0.0)
+        flags = detect_heading(curr, prev)
+        assert len(flags) == 0
+
+    def test_heading_mismatch_flags(self):
+        """60-degree heading mismatch should flag."""
+        # Moving north but heading says east (90 degrees).
+        prev = _make_state(timestamp=990, latitude=50.0, longitude=10.0, true_track=90.0)
+        curr = _make_state(timestamp=1000, latitude=50.1, longitude=10.0, true_track=90.0)
+        flags = detect_heading(curr, prev)
+        heading_flags = [f for f in flags if f.detector == "heading"]
+        assert len(heading_flags) >= 1
+
+    def test_turning_aircraft_skipped(self):
+        """Rapidly turning aircraft should be skipped (heading change > 3 deg/s)."""
+        prev = _make_state(timestamp=999, latitude=50.0, longitude=10.0, true_track=0.0)
+        curr = _make_state(timestamp=1000, latitude=50.01, longitude=10.0, true_track=90.0)
+        flags = detect_heading(curr, prev)
+        # 90 degree change in 1 second = 90 deg/s, should skip.
+        assert len(flags) == 0
+
+    def test_short_distance_skipped(self):
+        """Very short distance movement should be skipped."""
+        prev = _make_state(timestamp=990, latitude=50.0, longitude=10.0, true_track=90.0)
+        curr = _make_state(timestamp=1000, latitude=50.0001, longitude=10.0, true_track=90.0)
+        flags = detect_heading(curr, prev)
+        assert len(flags) == 0
