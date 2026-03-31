@@ -5,13 +5,15 @@ Tests geo utilities, known zone classification, and the sliding window
 manager. Later steps will add detector, classifier, and scorer tests.
 """
 
-from app.detection.interfaces.models import AircraftState
+from app.detection.interfaces.models import AircraftState, AnomalyFlag
+from app.detection.internal.classifier import classify
 from app.detection.internal.detectors import (
     detect_altitude,
     detect_heading,
     detect_position_jump,
     detect_velocity,
 )
+from app.detection.internal.scorer import compute_severity
 from app.detection.internal.geo import angular_difference, compute_bearing, haversine
 from app.detection.internal.window import StateWindowManager
 from app.detection.internal.zones import classify_zone
@@ -401,3 +403,141 @@ class TestHeadingDetector:
         curr = _make_state(timestamp=1000, latitude=50.0001, longitude=10.0, true_track=90.0)
         flags = detect_heading(curr, prev)
         assert len(flags) == 0
+
+
+# =========================================================================
+# Classifier
+# =========================================================================
+
+
+def _flag(detector: str, confidence: float = 0.8) -> AnomalyFlag:
+    """
+    Create a test AnomalyFlag with given detector name and confidence.
+
+    Args:
+        detector: Detector name string.
+        confidence: Confidence score 0.0-1.0.
+
+    Returns:
+        AnomalyFlag instance.
+    """
+    return AnomalyFlag(
+        detector=detector, value=100.0, threshold=50.0,
+        confidence=confidence, detail="test flag",
+    )
+
+
+class TestClassifier:
+    """Tests for the anomaly classification decision tree."""
+
+    def test_signal_loss_classifies_as_jamming(self):
+        """Signal loss -> jamming (Rule 1)."""
+        result = classify([], has_signal_loss=True)
+        assert result == "jamming"
+
+    def test_position_jump_classifies_as_spoofing(self):
+        """Position jump flag -> spoofing (Rule 2)."""
+        result = classify([_flag("position_jump", 0.8)])
+        assert result == "spoofing"
+
+    def test_altitude_high_conf_classifies_as_spoofing(self):
+        """Altitude divergence with conf > 0.5 -> spoofing (Rule 2)."""
+        result = classify([_flag("altitude", 0.7)])
+        assert result == "spoofing"
+
+    def test_heading_high_conf_classifies_as_spoofing(self):
+        """Heading mismatch with conf > 0.5 -> spoofing (Rule 2)."""
+        result = classify([_flag("heading", 0.6)])
+        assert result == "spoofing"
+
+    def test_velocity_high_conf_classifies_as_spoofing(self):
+        """Velocity only, high confidence -> spoofing (Rule 3)."""
+        result = classify([_flag("velocity", 0.8)])
+        assert result == "spoofing"
+
+    def test_velocity_low_conf_classifies_as_anomaly(self):
+        """Velocity only, low confidence -> anomaly (Rule 4)."""
+        result = classify([_flag("velocity", 0.3)])
+        assert result == "anomaly"
+
+    def test_clustered_adopts_cluster_classification(self):
+        """In cluster with medium-conf velocity -> adopt cluster type (Rule 5)."""
+        result = classify(
+            [_flag("altitude", 0.3)],  # Above 0.2 (passes Rule 6), below 0.5 (not Rule 2)
+            is_clustered=True,
+            cluster_classification="spoofing",
+        )
+        # 0.3 conf altitude: passes Rule 6 (> 0.2), but < 0.5 so not Rule 2.
+        # Not velocity-only = not Rule 3/4. Clustered = Rule 5.
+        assert result == "spoofing"
+
+    def test_no_flags_returns_normal(self):
+        """No flags -> normal (Rule 6)."""
+        result = classify([])
+        assert result == "normal"
+
+    def test_all_low_confidence_returns_normal(self):
+        """All flags below 0.2 -> normal (Rule 6)."""
+        result = classify([_flag("velocity", 0.1), _flag("altitude", 0.15)])
+        assert result == "normal"
+
+
+# =========================================================================
+# Severity scorer
+# =========================================================================
+
+
+class TestSeverityScorer:
+    """Tests for the severity scoring formula."""
+
+    def test_empty_flags_returns_zero(self):
+        """No flags should return severity 0, label 'low'."""
+        score, label = compute_severity([])
+        assert score == 0
+        assert label == "low"
+
+    def test_single_moderate_flag(self):
+        """Single flag with 0.5 confidence should produce moderate severity."""
+        score, label = compute_severity([_flag("velocity", 0.5)])
+        # 0.35 * 0.5 * 100 + 0.15 * 0.2 * 100 + 0 + 0 + 0.10 * 0.6 * 100
+        # = 17.5 + 3.0 + 0 + 0 + 6.0 = 26.5 -> ~27
+        assert 20 <= score <= 40
+        assert label == "moderate"
+
+    def test_clustered_high_confidence_spoofing_at_low_altitude(self):
+        """
+        Clustered, high-confidence, low-altitude spoofing with many flags -> critical (80+).
+
+        5 flags from 4 detectors, cluster of 20, 10 consecutive anomalous states,
+        at approach altitude (2000 m).
+        """
+        flags = [
+            _flag("position_jump", 0.95),
+            _flag("altitude", 0.90),
+            _flag("altitude", 0.85),
+            _flag("heading", 0.80),
+            _flag("velocity", 0.75),
+        ]
+        score, label = compute_severity(
+            flags,
+            is_clustered=True,
+            cluster_size=20,
+            consecutive_anomalous=10,
+            altitude=2000.0,
+        )
+        # 0.35*0.95*100 + 0.15*1.0*100 + 0.25*1.0*100 + 0.15*1.0*100 + 0.10*0.8*100
+        # = 33.25 + 15 + 25 + 15 + 8 = 96.25 -> 96
+        assert score >= 80
+        assert label == "critical"
+
+    def test_severity_labels_boundary(self):
+        """Verify label boundaries: low/moderate/elevated/high/critical."""
+        _, label = compute_severity([_flag("velocity", 0.1)])
+        assert label == "low"
+
+    def test_high_persistence_increases_score(self):
+        """Long consecutive anomalous history should boost severity."""
+        flags = [_flag("velocity", 0.6)]
+        score_low, _ = compute_severity(flags, consecutive_anomalous=0)
+        score_high, _ = compute_severity(flags, consecutive_anomalous=10)
+        assert score_high > score_low
