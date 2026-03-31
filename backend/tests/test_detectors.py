@@ -5,8 +5,9 @@ Tests geo utilities, known zone classification, and the sliding window
 manager. Later steps will add detector, classifier, and scorer tests.
 """
 
-from app.detection.interfaces.models import AircraftState, AnomalyFlag
+from app.detection.interfaces.models import AircraftState, AnomalyFlag, ClassifiedAnomaly, DetectionResult
 from app.detection.internal.classifier import classify
+from app.detection.internal.clusterer import build_zones_from_clusters, cluster_anomalies
 from app.detection.internal.detectors import (
     detect_altitude,
     detect_heading,
@@ -541,3 +542,93 @@ class TestSeverityScorer:
         score_low, _ = compute_severity(flags, consecutive_anomalous=0)
         score_high, _ = compute_severity(flags, consecutive_anomalous=10)
         assert score_high > score_low
+
+
+# =========================================================================
+# Clusterer
+# =========================================================================
+
+
+def _make_classified(lat: float, lon: float, anomaly_type: str = "spoofing",
+                     severity: int = 50) -> ClassifiedAnomaly:
+    """
+    Create a test ClassifiedAnomaly at the given position.
+
+    Args:
+        lat: Latitude in degrees.
+        lon: Longitude in degrees.
+        anomaly_type: Classification type.
+        severity: Severity score.
+
+    Returns:
+        ClassifiedAnomaly instance.
+    """
+    state = AircraftState(
+        icao24="TEST01", latitude=lat, longitude=lon,
+        timestamp=1000, last_contact=1000,
+    )
+    detection = DetectionResult(
+        aircraft=state,
+        flags=[_flag("position_jump", 0.8)],
+    )
+    return ClassifiedAnomaly(
+        detection=detection,
+        anomaly_type=anomaly_type,
+        severity=severity,
+        severity_label="elevated",
+        region="baltic_sea",
+    )
+
+
+class TestClusterer:
+    """Tests for DBSCAN spatial clustering."""
+
+    def test_nearby_anomalies_cluster_together(self):
+        """5 anomalies within 100 km should form 1 cluster."""
+        anomalies = [
+            _make_classified(57.0, 22.0),
+            _make_classified(57.1, 22.1),
+            _make_classified(57.05, 21.9),
+            _make_classified(56.95, 22.05),
+            _make_classified(57.02, 22.15),
+        ]
+        clusters = cluster_anomalies(anomalies)
+        # All 5 should be in one cluster.
+        big_clusters = [c for c in clusters if len(c) >= 3]
+        assert len(big_clusters) == 1
+        assert len(big_clusters[0]) == 5
+
+    def test_scattered_anomalies_no_cluster(self):
+        """3 anomalies spread across the globe should not cluster."""
+        anomalies = [
+            _make_classified(57.0, 22.0),    # Baltic
+            _make_classified(26.5, 54.0),    # Persian Gulf
+            _make_classified(15.0, 115.0),   # South China Sea
+        ]
+        clusters = cluster_anomalies(anomalies)
+        # Each should be its own single-element "cluster".
+        big_clusters = [c for c in clusters if len(c) >= 3]
+        assert len(big_clusters) == 0
+
+    def test_build_zones_from_clusters(self):
+        """Building zones from a cluster should produce a ZoneData."""
+        anomalies = [
+            _make_classified(57.0, 22.0),
+            _make_classified(57.1, 22.1),
+            _make_classified(57.05, 21.9),
+        ]
+        clusters = [anomalies]  # Pre-clustered.
+        zones = build_zones_from_clusters(clusters, snapshot_time=1000)
+        assert len(zones) == 1
+        assert zones[0].affected_aircraft == 3
+        assert zones[0].event_type == "spoofing"
+        assert zones[0].region == "baltic_sea"
+
+    def test_small_cluster_ignored(self):
+        """Clusters with fewer than 3 aircraft should not produce zones."""
+        anomalies = [
+            _make_classified(57.0, 22.0),
+            _make_classified(57.1, 22.1),
+        ]
+        zones = build_zones_from_clusters([anomalies], snapshot_time=1000)
+        assert len(zones) == 0
