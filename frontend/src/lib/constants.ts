@@ -50,14 +50,14 @@ export const REGION_NAMES: Record<string, string> = {
 };
 
 /** Region center coordinates for camera fly-to. */
-export const REGION_CENTERS: Record<string, { lat: number; lon: number; zoom: number }> = {
-  baltic_sea: { lat: 57.0, lon: 22.0, zoom: 4 },
-  eastern_med: { lat: 35.0, lon: 34.0, zoom: 4.5 },
-  persian_gulf: { lat: 26.5, lon: 54.0, zoom: 4.5 },
-  red_sea: { lat: 15.0, lon: 42.0, zoom: 4 },
-  black_sea: { lat: 43.0, lon: 35.0, zoom: 4.5 },
-  ukraine_frontline: { lat: 49.0, lon: 36.0, zoom: 5 },
-  south_china_sea: { lat: 15.0, lon: 115.0, zoom: 4 },
+export const REGION_CENTERS: Record<string, { latitude: number; longitude: number; zoom: number }> = {
+  baltic_sea: { latitude: 57.0, longitude: 22.0, zoom: 4 },
+  eastern_med: { latitude: 35.0, longitude: 34.0, zoom: 4.5 },
+  persian_gulf: { latitude: 26.5, longitude: 54.0, zoom: 4.5 },
+  red_sea: { latitude: 15.0, longitude: 42.0, zoom: 4 },
+  black_sea: { latitude: 43.0, longitude: 35.0, zoom: 4.5 },
+  ukraine_frontline: { latitude: 49.0, longitude: 36.0, zoom: 5 },
+  south_china_sea: { latitude: 15.0, longitude: 115.0, zoom: 4 },
 };
 
 /** Default globe view state (centered on Middle East). */
