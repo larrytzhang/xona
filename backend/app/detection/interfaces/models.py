@@ -36,6 +36,7 @@ class AircraftState(BaseModel):
         on_ground: Whether the aircraft is on the ground.
         timestamp: Unix epoch seconds of the position report.
         last_contact: Unix epoch seconds of the last ADS-B message.
+        altitude_discrepancy: geo_altitude - baro_altitude, computed during cleaning (Part 7.2 rule 8).
     """
 
     icao24: str
@@ -50,6 +51,7 @@ class AircraftState(BaseModel):
     on_ground: bool = False
     timestamp: int = 0
     last_contact: int = 0
+    altitude_discrepancy: Optional[float] = None
 
 
 class AnomalyFlag(BaseModel):

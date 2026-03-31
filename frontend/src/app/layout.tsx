@@ -1,16 +1,22 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
-import { Nav } from "@/components/ui/Nav";
+import { Nav } from "@/components/ui";
 
 /**
  * Root metadata for GPS Shield.
- * Sets page title, description, and theme color for the entire app.
+ * Sets page title and description for the entire app.
  */
 export const metadata: Metadata = {
   title: "GPS Shield — GPS Anomaly Detection Engine",
   description:
     "Analyzing millions of flight records to map the GPS spoofing crisis and model how next-generation LEO navigation solves it.",
+};
+
+/**
+ * Viewport configuration with dark theme color.
+ */
+export const viewport: Viewport = {
   themeColor: "#09090B",
 };
 

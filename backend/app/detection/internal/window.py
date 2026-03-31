@@ -36,7 +36,12 @@ class StateWindowManager:
     """
 
     def __init__(self) -> None:
-        """Initialize empty window and anomaly count stores."""
+        """
+        Initialize empty window and anomaly count stores.
+
+        Creates empty dicts for per-aircraft state windows and
+        consecutive anomaly counters.
+        """
         self._windows: dict[str, deque[AircraftState]] = {}
         self._anomaly_counts: dict[str, int] = {}
 

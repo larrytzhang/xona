@@ -5,5 +5,6 @@
  * not directly from internal component files.
  */
 export { GlobeView } from "./GlobeView";
+export { LivePulse } from "./LivePulse";
 export { PulsarToggle } from "./PulsarToggle";
 export { ZoneTooltip } from "./ZoneTooltip";

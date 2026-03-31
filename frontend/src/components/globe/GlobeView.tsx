@@ -289,7 +289,12 @@ export function GlobeView({
   );
 }
 
-/** Cubic ease-in-out for smooth Pulsar toggle transitions. */
+/**
+ * Cubic ease-in-out easing function for smooth Pulsar toggle transitions.
+ *
+ * @param t - Progress value from 0.0 to 1.0.
+ * @returns Eased value from 0.0 to 1.0.
+ */
 function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }

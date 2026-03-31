@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { LivePulse } from "@/components/globe/LivePulse";
+import { LivePulse } from "@/components/globe";
 import type { StatsResponse } from "@/lib/types";
 
 /**

@@ -26,7 +26,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from app.database import async_session, engine
-from app.detection import AnomalyPipeline
+from app.detection import AnomalyPipeline, ClassifiedAnomaly, ZoneData
 from app.ingestion import OpenSkyClient
 from app.models import AnomalyEvent, Base, InterferenceZone
 
@@ -145,7 +145,11 @@ async def load_historical(start_date: str, end_date: str, interval_hours: int = 
     print(f"  Interference zones: {total_zones:,}")
 
 
-async def _store_results(events, zones, snapshot_time: int) -> None:
+async def _store_results(
+    events: list[ClassifiedAnomaly],
+    zones: list[ZoneData],
+    snapshot_time: int,
+) -> None:
     """
     Store detection pipeline results in the database.
 
@@ -184,7 +188,7 @@ async def _store_results(events, zones, snapshot_time: int) -> None:
         # Insert events.
         for event in events:
             ac = event.detection.aircraft
-            flags = [f.dict() for f in event.detection.flags]
+            flags = [f.model_dump() for f in event.detection.flags]
 
             ae = AnomalyEvent(
                 ts=datetime.fromtimestamp(ac.timestamp, tz=timezone.utc),

@@ -71,7 +71,12 @@ class OpenSkyClient:
         self._last_request_time: float = 0.0
 
     async def close(self) -> None:
-        """Close the HTTP client and release connections."""
+        """
+        Close the HTTP client and release connections.
+
+        Should be called when the client is no longer needed (e.g.,
+        on application shutdown or after batch processing completes).
+        """
         await self._client.aclose()
 
     async def fetch_states(self, timestamp: Optional[int] = None) -> list[dict]:

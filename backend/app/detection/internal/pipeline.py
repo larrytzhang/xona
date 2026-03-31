@@ -58,7 +58,12 @@ class AnomalyPipeline:
     """
 
     def __init__(self) -> None:
-        """Initialize the pipeline with empty state."""
+        """
+        Initialize the pipeline with empty state.
+
+        Creates a fresh StateWindowManager and empty tracking sets
+        for signal loss detection between snapshots.
+        """
         self.window_manager = StateWindowManager()
         self._previous_icao24s: set[str] = set()
         self._last_positions: dict[str, AircraftState] = {}
@@ -249,6 +254,11 @@ class AnomalyPipeline:
             if geo_alt is not None and geo_alt > 20_000:
                 continue
 
+            # Rule 8: Compute altitude discrepancy (Part 7.2).
+            alt_discrepancy = None
+            if geo_alt is not None and baro_alt is not None:
+                alt_discrepancy = geo_alt - baro_alt
+
             # Build clean state.
             state = AircraftState(
                 icao24=raw.get("icao24", ""),
@@ -263,6 +273,7 @@ class AnomalyPipeline:
                 on_ground=False,
                 timestamp=ts,
                 last_contact=raw.get("last_contact", ts),
+                altitude_discrepancy=alt_discrepancy,
             )
 
             cleaned.append(state)

@@ -28,6 +28,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -74,22 +75,22 @@ class InterferenceZone(Base):
     radius_km: Mapped[float] = mapped_column(Double, nullable=False)
     event_type: Mapped[str] = mapped_column(String(10), nullable=False)
     severity: Mapped[int] = mapped_column(SmallInteger, nullable=False)
-    affected_aircraft: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    affected_aircraft: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     end_time: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    status: Mapped[str] = mapped_column(String(10), nullable=False, default="active")
+    status: Mapped[str] = mapped_column(String(10), nullable=False, server_default="active")
     region: Mapped[str] = mapped_column(String(30), nullable=False)
-    is_live: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_live: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
 
     # Pulsar mitigation data
     gps_jam_radius_km: Mapped[Optional[float]] = mapped_column(Double, nullable=True)
     pulsar_jam_radius_km: Mapped[Optional[float]] = mapped_column(Double, nullable=True)
-    spoofing_eliminated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    spoofing_eliminated: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     signal_advantage_db: Mapped[Optional[float]] = mapped_column(Double, nullable=True)
     area_reduction_pct: Mapped[Optional[float]] = mapped_column(Double, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default="NOW()"
+        DateTime(timezone=True), nullable=False, server_default=text("NOW()")
     )
 
     # Relationships
@@ -143,14 +144,14 @@ class AnomalyEvent(Base):
     anomaly_type: Mapped[str] = mapped_column(String(10), nullable=False)
     severity: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     severity_label: Mapped[str] = mapped_column(String(10), nullable=False)
-    flags: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default="'[]'::jsonb")
+    flags: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
     zone_event_id: Mapped[Optional[int]] = mapped_column(
         BigInteger, ForeignKey("interference_zones.id"), nullable=True
     )
     region: Mapped[str] = mapped_column(String(30), nullable=False)
-    is_live: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_live: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default="NOW()"
+        DateTime(timezone=True), nullable=False, server_default=text("NOW()")
     )
 
     # Relationships
@@ -199,9 +200,9 @@ class Finding(Base):
     title: Mapped[str] = mapped_column(Text, nullable=False)
     value: Mapped[str] = mapped_column(Text, nullable=False)
     detail: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     computed_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default="NOW()"
+        DateTime(timezone=True), nullable=False, server_default=text("NOW()")
     )
 
 
@@ -231,13 +232,13 @@ class RegionStat(Base):
     region: Mapped[str] = mapped_column(String(30), nullable=False)
     period: Mapped[str] = mapped_column(String(10), nullable=False)
     period_start: Mapped[date] = mapped_column(Date, nullable=False)
-    total_events: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    spoofing_events: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    jamming_events: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    unique_aircraft: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_events: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    spoofing_events: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    jamming_events: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    unique_aircraft: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     avg_severity: Mapped[Optional[float]] = mapped_column(Double, nullable=True)
     computed_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default="NOW()"
+        DateTime(timezone=True), nullable=False, server_default=text("NOW()")
     )
 
     __table_args__ = (

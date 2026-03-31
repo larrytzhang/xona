@@ -23,6 +23,7 @@ export default function Home() {
     zoom: number;
   } | null>(null);
 
+  /** Select a zone and fly the camera to it. */
   const handleZoneClick = (zone: InterferenceZone) => {
     setSelectedZone(zone);
     setFlyTo({
@@ -32,6 +33,7 @@ export default function Home() {
     });
   };
 
+  /** Fly the camera to a region's center coordinates. */
   const handleRegionClick = (target: {
     latitude: number;
     longitude: number;
@@ -40,6 +42,7 @@ export default function Home() {
     setFlyTo(target);
   };
 
+  /** Close the zone detail panel and reset camera. */
   const handleCloseDetail = () => {
     setSelectedZone(null);
     setFlyTo(null);

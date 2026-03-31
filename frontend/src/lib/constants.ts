@@ -23,7 +23,12 @@ export const SEVERITY_RGBA: Record<string, [number, number, number, number]> = {
   critical: [239, 68, 68, 200],
 };
 
-/** Get severity label from numeric score. */
+/**
+ * Map a numeric severity score (0-100) to a human-readable label.
+ *
+ * @param score - Severity score from 0 to 100.
+ * @returns One of: 'low', 'moderate', 'elevated', 'high', 'critical'.
+ */
 export function severityLabel(score: number): string {
   if (score < 20) return "low";
   if (score < 40) return "moderate";
@@ -32,7 +37,12 @@ export function severityLabel(score: number): string {
   return "critical";
 }
 
-/** Get severity color hex from numeric score. */
+/**
+ * Map a numeric severity score to a hex color string.
+ *
+ * @param score - Severity score from 0 to 100.
+ * @returns Hex color string (e.g., '#EF4444' for critical).
+ */
 export function severityColor(score: number): string {
   return SEVERITY_COLORS[severityLabel(score)] || "#71717A";
 }
