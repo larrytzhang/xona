@@ -5,3 +5,4 @@
  * not directly from internal component files.
  */
 export { GlobeView } from "./GlobeView";
+export { ZoneTooltip } from "./ZoneTooltip";
