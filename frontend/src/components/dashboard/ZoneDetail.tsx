@@ -39,7 +39,7 @@ export function ZoneDetail({
       />
 
       {/* Panel */}
-      <div className="fixed top-14 right-0 bottom-0 z-50 w-[380px] glass border-l border-border-subtle overflow-y-auto animate-slide-in">
+      <div className="fixed top-14 right-0 bottom-0 z-50 w-full md:w-[380px] glass border-l border-border-subtle overflow-y-auto animate-slide-in">
         {/* Header */}
         <div className="flex items-start justify-between p-4 border-b border-border-subtle">
           <div>

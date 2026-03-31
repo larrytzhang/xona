@@ -29,7 +29,7 @@ export function RegionList({
   if (!regions.length) return null;
 
   return (
-    <div className="absolute top-[7.5rem] left-4 z-30 glass rounded-xl w-56 max-h-[calc(100vh-10rem)] overflow-y-auto">
+    <div className="hidden md:block absolute top-[7.5rem] left-4 z-30 glass rounded-xl w-56 max-h-[calc(100vh-10rem)] overflow-y-auto">
       <div className="p-3 border-b border-border-subtle">
         <h3 className="text-xs text-text-muted uppercase tracking-wider font-medium">Regions</h3>
       </div>

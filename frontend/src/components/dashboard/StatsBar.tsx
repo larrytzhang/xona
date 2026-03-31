@@ -77,12 +77,12 @@ export function StatsBar({ stats }: { stats: StatsResponse | null }) {
   }
 
   return (
-    <div className="absolute top-14 left-0 right-0 z-30 glass h-16 flex items-center justify-between px-6 border-b border-border-subtle">
-      <div className="flex items-center gap-2 divide-x divide-border-subtle">
+    <div className="absolute top-14 left-0 right-0 z-30 glass h-16 flex items-center justify-between px-4 md:px-6 border-b border-border-subtle">
+      <div className="flex items-center gap-1 md:gap-2 divide-x divide-border-subtle overflow-x-auto">
         <StatCard label="Events Detected" value={stats.total_events} />
         <StatCard label="Active Zones" value={stats.live.active_zones} />
         <StatCard label="Aircraft Affected" value={stats.total_aircraft_affected} />
-        <div className="flex flex-col items-center px-4">
+        <div className="hidden md:flex flex-col items-center px-4">
           <span className="text-xs text-text-primary">
             {stats.date_range.start} — {stats.date_range.end}
           </span>
