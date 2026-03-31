@@ -17,8 +17,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import AsyncGenerator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.api import router
@@ -161,14 +162,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(
-    title="GPS Shield",
+    title="GPS Shield — Anomaly Detection Engine",
     description=(
-        "Anomaly Detection Engine — analyzes ADS-B aircraft data to detect "
-        "GPS spoofing and jamming events, then models how Xona's Pulsar "
-        "LEO constellation would neutralize them."
+        "A research platform that analyzes millions of real ADS-B aircraft "
+        "position reports to detect and map GPS spoofing and jamming events "
+        "worldwide. Demonstrates how Xona Space Systems' Pulsar LEO "
+        "constellation would neutralize each detected threat.\n\n"
+        "**Key Features:**\n"
+        "- 6 anomaly detectors (velocity, position, altitude, heading, cluster, signal loss)\n"
+        "- DBSCAN spatial clustering into interference zones\n"
+        "- Pulsar mitigation modeling (6.3x radius reduction, 97.5% area reduction)\n"
+        "- Pre-computed key findings across 7 global conflict zones\n"
+        "- Live polling of OpenSky Network for real-time detection"
     ),
     version="1.0.0",
     lifespan=lifespan,
+    openapi_tags=[
+        {"name": "Health", "description": "System health and status"},
+        {"name": "Zones", "description": "Interference zone data (live + historical)"},
+        {"name": "Analytics", "description": "Statistics, findings, and region breakdowns"},
+    ],
 )
 
 # CORS middleware
@@ -182,3 +195,25 @@ app.add_middleware(
 
 # Mount API routes
 app.include_router(router)
+
+
+# Global exception handler for clean JSON error responses.
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """
+    Catch unhandled exceptions and return a clean JSON error.
+
+    Args:
+        request: The incoming request.
+        exc: The unhandled exception.
+
+    Returns:
+        JSONResponse with 500 status and error detail.
+    """
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "type": type(exc).__name__},
+    )
