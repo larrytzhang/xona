@@ -1,23 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { GlobeView } from "@/components/globe";
+import { GlobeView, PulsarToggle } from "@/components/globe";
 import { MOCK_ZONES } from "@/mocks/data";
 
 /**
  * GPS Shield — Main Globe Page.
  *
  * The hero view of the app: a full-screen interactive 3D globe
- * displaying interference zones, with the Pulsar Mode toggle,
- * stats bar, region sidebar, and zone detail panel.
+ * displaying interference zones with the Pulsar Mode toggle.
  *
- * Currently uses mock data. Will switch to useZonesLive() in Step 26.
- * Pulsar toggle will be added in Step 19.
- * Dashboard panels will be added in Steps 20-22.
+ * The Pulsar toggle is THE feature — clicking it triggers a smooth
+ * 1.5s animation where zone radii shrink 97%, colors shift to cyan,
+ * and "spoofing eliminated" labels appear.
+ *
+ * Dashboard panels (stats bar, region list, zone detail) will be
+ * added in Steps 20-22.
  */
 export default function Home() {
-  // Pulsar toggle will be wired in Step 19.
-  const [pulsarMode] = useState(false);
+  const [pulsarMode, setPulsarMode] = useState(false);
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
@@ -27,6 +28,10 @@ export default function Home() {
         onZoneClick={(zone) => {
           console.log("Zone clicked:", zone.id, zone.region);
         }}
+      />
+      <PulsarToggle
+        active={pulsarMode}
+        onToggle={() => setPulsarMode((prev) => !prev)}
       />
     </div>
   );
