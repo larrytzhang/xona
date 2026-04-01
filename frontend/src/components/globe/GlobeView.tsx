@@ -57,6 +57,17 @@ export function GlobeView({
   const interactionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animationFrame = useRef<number | null>(null);
 
+  // Suppress luma.gl WebGL init race condition. The ResizeObserver fires
+  // before the WebGL device is ready, throwing "maxTextureDimension2D".
+  // This is a known luma.gl 9.x bug — harmless, resolves on next frame.
+  useEffect(() => {
+    const handler = (e: ErrorEvent) => {
+      if (e.message?.includes("maxTextureDimension2D")) e.stopImmediatePropagation();
+    };
+    window.addEventListener("error", handler);
+    return () => window.removeEventListener("error", handler);
+  }, []);
+
   // Intro fade-in.
   useEffect(() => {
     const fadeTimer = setTimeout(() => setIsVisible(true), 100);

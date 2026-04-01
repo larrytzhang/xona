@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { GlobeView, PulsarToggle } from "@/components/globe";
+import { GlobeErrorBoundary } from "@/components/globe/GlobeErrorBoundary";
 import { StatsBar, ZoneDetail, RegionList } from "@/components/dashboard";
 import { useZonesLive, useStats, useRegions } from "@/lib/hooks";
 import type { InterferenceZone } from "@/lib/types";
@@ -69,13 +70,15 @@ export default function Home() {
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
-      {/* Globe — always render, shows empty globe while loading */}
-      <GlobeView
-        zones={zones}
-        pulsarMode={pulsarMode}
-        onZoneClick={handleZoneClick}
-        flyTo={flyTo}
-      />
+      {/* Globe — error boundary catches luma.gl WebGL init race condition */}
+      <GlobeErrorBoundary>
+        <GlobeView
+          zones={zones}
+          pulsarMode={pulsarMode}
+          onZoneClick={handleZoneClick}
+          flyTo={flyTo}
+        />
+      </GlobeErrorBoundary>
 
       {/* Connection error overlay */}
       {isError && (
