@@ -100,7 +100,7 @@ function Sparkline({ data }: { data: number[] }) {
     .join(" ");
 
   return (
-    <svg width={width} height={height} className="flex-shrink-0">
+    <svg width={width} height={height} className="flex-shrink-0" role="img" aria-label="Trend sparkline for region">
       <polyline
         points={points}
         fill="none"

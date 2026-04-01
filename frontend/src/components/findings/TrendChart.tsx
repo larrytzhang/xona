@@ -43,7 +43,7 @@ export function TrendChart({ regions }: { regions: RegionData[] }) {
   return (
     <div className="glass rounded-xl p-4">
       <h3 className="text-sm font-medium text-text-secondary mb-3">Events Over Time by Region</h3>
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full" role="img" aria-label="Stacked bar chart showing GPS interference events over time by region">
         {/* Y-axis labels */}
         {[0, 0.25, 0.5, 0.75, 1].map((frac) => {
           const y = padding.top + chartH * (1 - frac);
