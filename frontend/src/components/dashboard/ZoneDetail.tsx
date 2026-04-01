@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { X } from "lucide-react";
 import type { InterferenceZone } from "@/lib/types";
 import { REGION_NAMES, severityColor, severityLabel } from "@/lib/constants";
@@ -21,6 +22,14 @@ export function ZoneDetail({
   zone: InterferenceZone | null;
   onClose: () => void;
 }) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   if (!zone) return null;
 
   const label = severityLabel(zone.severity);
