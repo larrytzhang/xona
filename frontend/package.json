@@ -20,6 +20,9 @@
     "react": "^18",
     "react-dom": "^18"
   },
+  "overrides": {
+    "fast-xml-parser": ">=5.5.7"
+  },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
