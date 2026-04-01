@@ -11,7 +11,7 @@
  */
 export function RadiusAnimation() {
   const gpsRadius = 150; // km (example)
-  const pulsarRadius = 23.8; // km (150 / 6.3)
+  const pulsarRadius = Math.round((gpsRadius / 6.3) * 10) / 10; // km (6.3x reduction)
   const svgSize = 300;
   const center = svgSize / 2;
   const scale = 0.9; // fraction of SVG radius to use
