@@ -110,10 +110,9 @@ export function GlobeView({
     }, ANIMATION.IDLE_TIMEOUT_MS);
   }, []);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleViewStateChange = useCallback(({ viewState: vs }: { viewState: any }) => {
-    const zoom = Math.min(6, Math.max(0.5, vs.zoom ?? 1.5));
-    setViewState({ ...vs, zoom });
+  const handleViewStateChange = useCallback(({ viewState: vs }: { viewState: Record<string, unknown> }) => {
+    const zoom = Math.min(6, Math.max(0.5, (vs.zoom as number) ?? 1.5));
+    setViewState({ ...DEFAULT_VIEW_STATE, ...vs, zoom } as typeof DEFAULT_VIEW_STATE);
   }, []);
 
   // --- Data layers ---
