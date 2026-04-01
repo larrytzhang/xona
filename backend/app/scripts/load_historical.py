@@ -185,10 +185,24 @@ async def _store_results(
 
         await session.flush()
 
+        # Build a mapping from anomaly -> zone for correct assignment.
+        anomaly_zone_map: dict[str, int] = {}
+        for zi, zone in enumerate(zones):
+            for a in zone.anomalies:
+                key = f"{a.detection.aircraft.icao24}_{a.detection.aircraft.timestamp}"
+                anomaly_zone_map[key] = zi
+
         # Insert events.
         for event in events:
             ac = event.detection.aircraft
             flags = [f.model_dump() for f in event.detection.flags]
+
+            key = f"{ac.icao24}_{ac.timestamp}"
+            zi = anomaly_zone_map.get(key)
+            zone_id = (
+                db_zones[zi].id if zi is not None and zi < len(db_zones)
+                else (db_zones[0].id if db_zones else None)
+            )
 
             ae = AnomalyEvent(
                 ts=datetime.fromtimestamp(ac.timestamp, tz=timezone.utc),
@@ -196,12 +210,12 @@ async def _store_results(
                 callsign=ac.callsign or None,
                 latitude=ac.latitude,
                 longitude=ac.longitude,
-                altitude_m=ac.geo_altitude or ac.baro_altitude,
+                altitude_m=ac.geo_altitude if ac.geo_altitude is not None else ac.baro_altitude,
                 anomaly_type=event.anomaly_type,
                 severity=event.severity,
                 severity_label=event.severity_label,
                 flags=flags,
-                zone_event_id=db_zones[0].id if db_zones else None,
+                zone_event_id=zone_id,
                 region=event.region,
                 is_live=False,
             )

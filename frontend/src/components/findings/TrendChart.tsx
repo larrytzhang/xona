@@ -5,7 +5,7 @@ import type { RegionData } from "@/lib/types";
 /**
  * Events over time area chart using pure SVG.
  *
- * Shows a stacked area chart of events per month across regions.
+ * Shows a stacked bar chart of events per month across regions.
  * Uses inline SVG rather than Recharts for build simplicity.
  *
  * @param regions - Array of region data with trend series.

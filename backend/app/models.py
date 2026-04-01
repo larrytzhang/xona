@@ -144,7 +144,7 @@ class AnomalyEvent(Base):
     anomaly_type: Mapped[str] = mapped_column(String(10), nullable=False)
     severity: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     severity_label: Mapped[str] = mapped_column(String(10), nullable=False)
-    flags: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
+    flags: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
     zone_event_id: Mapped[Optional[int]] = mapped_column(
         BigInteger, ForeignKey("interference_zones.id"), nullable=True
     )
@@ -171,6 +171,7 @@ class AnomalyEvent(Base):
             severity.desc(),
             postgresql_where="anomaly_type != 'anomaly'",
         ),
+        Index("idx_events_icao24", "icao24"),
         Index("idx_events_coords", "latitude", "longitude"),
     )
 

@@ -20,7 +20,7 @@ export function SignalComparison() {
     <div className="glass rounded-xl p-8">
       <h2 className="text-2xl font-bold mb-2">Signal Strength</h2>
       <p className="text-text-secondary mb-6">
-        Pulsar broadcasts 100x more power than GPS from 20x closer in Low Earth Orbit.
+        Pulsar delivers ~178x more received power than GPS from 20x closer in Low Earth Orbit.
         This is like comparing a flashlight to a spotlight.
       </p>
 

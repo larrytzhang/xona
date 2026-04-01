@@ -49,7 +49,7 @@ async def _live_polling_task() -> None:
     from app.detection import AnomalyPipeline
     from app.ingestion import OpenSkyClient
     from app.database import async_session
-    from app.models import InterferenceZone
+    from app.models import AnomalyEvent as AnomalyEventModel, InterferenceZone
 
     client = OpenSkyClient()
     pipeline = AnomalyPipeline()
@@ -67,7 +67,7 @@ async def _live_polling_task() -> None:
                 if raw_states:
                     events, zones = pipeline.process_snapshot(raw_states, snapshot_time=now_ts)
 
-                    live_state["last_poll"] = datetime.now(timezone.utc).isoformat()
+                    live_state["last_poll"] = datetime.now(timezone.utc)
                     live_state["active_zones"] = zones
                     live_state["events_last_hour"] = len(events)
 
@@ -94,6 +94,24 @@ async def _live_polling_task() -> None:
                                         area_reduction_pct=zone.area_reduction_pct,
                                     )
                                     session.add(iz)
+                                for event in events:
+                                    ac = event.detection.aircraft
+                                    ae_flags = [f.model_dump() for f in event.detection.flags]
+                                    ae = AnomalyEventModel(
+                                        ts=datetime.fromtimestamp(ac.timestamp, tz=timezone.utc),
+                                        icao24=ac.icao24,
+                                        callsign=ac.callsign or None,
+                                        latitude=ac.latitude,
+                                        longitude=ac.longitude,
+                                        altitude_m=ac.geo_altitude if ac.geo_altitude is not None else ac.baro_altitude,
+                                        anomaly_type=event.anomaly_type,
+                                        severity=event.severity,
+                                        severity_label=event.severity_label,
+                                        flags=ae_flags,
+                                        region=event.region,
+                                        is_live=True,
+                                    )
+                                    session.add(ae)
                                 await session.commit()
                         except Exception:
                             logger.exception("Failed to store live detections")
@@ -103,7 +121,7 @@ async def _live_polling_task() -> None:
                         len(raw_states), len(events), len(zones),
                     )
                 else:
-                    live_state["last_poll"] = datetime.now(timezone.utc).isoformat()
+                    live_state["last_poll"] = datetime.now(timezone.utc)
 
             except asyncio.CancelledError:
                 raise
@@ -147,17 +165,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception:
         logger.warning("Database not available — serving without live data")
 
-    # Start live polling task.
-    polling_task = asyncio.create_task(_live_polling_task())
+    # Start live polling task (if enabled).
+    polling_task = None
+    if settings.LIVE_POLLING_ENABLED:
+        polling_task = asyncio.create_task(_live_polling_task())
+    else:
+        logger.info("Live polling disabled via LIVE_POLLING_ENABLED=false")
 
     yield
 
     # Shutdown: cancel polling and dispose engine.
-    polling_task.cancel()
-    try:
-        await polling_task
-    except asyncio.CancelledError:
-        pass
+    if polling_task is not None:
+        polling_task.cancel()
+        try:
+            await polling_task
+        except asyncio.CancelledError:
+            pass
     await engine.dispose()
 
 
@@ -188,9 +211,9 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "OPTIONS"],
+    allow_headers=["Accept", "Content-Type"],
 )
 
 # Mount API routes
@@ -215,5 +238,5 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     logger.exception("Unhandled error on %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal server error", "type": type(exc).__name__},
+        content={"detail": "Internal server error"},
     )

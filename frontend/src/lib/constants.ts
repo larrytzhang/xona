@@ -74,7 +74,7 @@ export const REGION_CENTERS: Record<string, { latitude: number; longitude: numbe
 export const DEFAULT_VIEW_STATE = {
   latitude: 25,
   longitude: 35,
-  zoom: 1.5,
+  zoom: 2.2,
   pitch: 0,
   bearing: 0,
 };

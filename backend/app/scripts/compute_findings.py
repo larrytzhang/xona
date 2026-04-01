@@ -132,7 +132,7 @@ async def compute_findings() -> None:
                 "sort_order": 1,
             },
             {
-                "finding_key": "top_region",
+                "finding_key": "baltic_dominance",
                 "title": f"{top_region_name}: Epicenter of GPS Spoofing",
                 "value": f"{top_region_pct}%",
                 "detail": (

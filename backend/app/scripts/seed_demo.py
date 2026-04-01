@@ -216,6 +216,7 @@ async def generate_seed_data() -> dict:
                         region=zone_id,
                         is_live=False,
                     )
+                    evt._zone_idx = len(all_zones) - 1
                     all_events.append(evt)
                     region_events += 1
 
@@ -232,15 +233,11 @@ async def generate_seed_data() -> dict:
         session.add_all(all_zones)
         await session.flush()
 
-        # Link events to their zones.
-        zone_idx = 0
-        for i, evt in enumerate(all_events):
-            # Simple assignment: events belong to the zone they were generated with.
-            zone_for_event = all_zones[min(zone_idx, len(all_zones) - 1)]
+        # Link events to their parent zones using the zone_index set during generation.
+        for evt in all_events:
+            zi = getattr(evt, '_zone_idx', 0)
+            zone_for_event = all_zones[min(zi, len(all_zones) - 1)]
             evt.zone_event_id = zone_for_event.id
-            # Advance zone index roughly proportionally.
-            if i > 0 and i % max(1, len(all_events) // len(all_zones)) == 0:
-                zone_idx = min(zone_idx + 1, len(all_zones) - 1)
 
         session.add_all(all_events)
         await session.commit()

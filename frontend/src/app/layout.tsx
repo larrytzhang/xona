@@ -44,18 +44,11 @@ export default function RootLayout({
       <body className="bg-bg-primary text-text-primary antialiased min-h-screen">
         <Providers>
           <Nav />
-          {/* Mobile notice — visible only on small screens */}
-          <div className="sm:hidden fixed inset-0 z-[100] bg-bg-primary flex items-center justify-center p-6">
-            <div className="text-center max-w-xs">
-              <div className="w-10 h-10 rounded-full bg-accent-cyan/20 flex items-center justify-center mx-auto mb-4">
-                <div className="w-4 h-4 rounded-full bg-accent-cyan" />
-              </div>
-              <h2 className="text-lg font-semibold mb-2">GPS Shield</h2>
-              <p className="text-text-muted text-sm">
-                This interactive research platform is best experienced on a desktop or tablet.
-                The 3D globe and data visualizations require a larger screen.
-              </p>
-            </div>
+          {/* Mobile notice — banner instead of full overlay */}
+          <div className="sm:hidden fixed top-0 left-0 right-0 z-[100] bg-bg-surface border-b border-border-subtle px-4 py-3 text-center">
+            <p className="text-text-muted text-xs">
+              Best experienced on desktop. The 3D globe requires a larger screen.
+            </p>
           </div>
           <main className="relative">{children}</main>
         </Providers>

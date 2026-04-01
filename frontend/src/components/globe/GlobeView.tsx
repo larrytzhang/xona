@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DeckGL from "@deck.gl/react";
 import { _GlobeView as DeckGlobeView } from "@deck.gl/core";
-import { TileLayer } from "@deck.gl/geo-layers";
 import { BitmapLayer, ScatterplotLayer } from "@deck.gl/layers";
 import {
   ANIMATION,
@@ -46,10 +45,7 @@ export function GlobeView({
   onZoneClick,
   flyTo,
 }: GlobeViewProps) {
-  const [viewState, setViewState] = useState({
-    ...DEFAULT_VIEW_STATE,
-    zoom: 2.5,
-  });
+  const [viewState, setViewState] = useState(DEFAULT_VIEW_STATE);
   const [isVisible, setIsVisible] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
   const [hoveredZone, setHoveredZone] = useState<InterferenceZone | null>(null);
@@ -57,25 +53,15 @@ export function GlobeView({
   const interactionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animationFrame = useRef<number | null>(null);
 
-  // Intro animation.
+  // Intro fade-in.
   useEffect(() => {
     const fadeTimer = setTimeout(() => setIsVisible(true), 100);
-    const zoomTimer = setTimeout(() => {
-      setViewState((prev) => ({
-        ...prev,
-        zoom: DEFAULT_VIEW_STATE.zoom,
-        transitionDuration: 1500,
-      }));
-    }, ANIMATION.INTRO_FADE_MS);
-    return () => {
-      clearTimeout(fadeTimer);
-      clearTimeout(zoomTimer);
-    };
+    return () => clearTimeout(fadeTimer);
   }, []);
 
   // Auto-rotation.
   useEffect(() => {
-    if (isInteracting) {
+    if (isInteracting || flyTo) {
       if (animationFrame.current) cancelAnimationFrame(animationFrame.current);
       return;
     }
@@ -93,7 +79,7 @@ export function GlobeView({
     return () => {
       if (animationFrame.current) cancelAnimationFrame(animationFrame.current);
     };
-  }, [isInteracting]);
+  }, [isInteracting, flyTo]);
 
   // Fly-to from external triggers.
   useEffect(() => {
@@ -122,7 +108,8 @@ export function GlobeView({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleViewStateChange = useCallback(({ viewState: vs }: { viewState: any }) => {
-    setViewState((prev) => ({ ...prev, ...vs }));
+    const zoom = Math.min(6, Math.max(0.5, vs.zoom ?? 1.5));
+    setViewState({ ...vs, zoom });
   }, []);
 
   // --- Data layers ---
@@ -214,32 +201,13 @@ export function GlobeView({
     [zones, pulsarMode]
   );
 
-  // Basemap tiles.
+  // Basemap: single equirectangular earth texture (no tile seams on globe).
   const basemapLayer = useMemo(
     () =>
-      new TileLayer({
+      new BitmapLayer({
         id: "basemap",
-        data: "https://basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}@2x.png",
-        minZoom: 0,
-        maxZoom: 6,
-        tileSize: 256,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        renderSubLayers: (props: any) => {
-          const { boundingBox } = props.tile as {
-            boundingBox: [[number, number], [number, number]];
-          };
-          return new BitmapLayer({
-            ...props,
-            data: undefined,
-            image: props.data as string,
-            bounds: [
-              boundingBox[0][0],
-              boundingBox[0][1],
-              boundingBox[1][0],
-              boundingBox[1][1],
-            ],
-          });
-        },
+        image: "/earth-dark.jpg",
+        bounds: [-180, -90, 180, 90],
       }),
     []
   );
@@ -272,10 +240,7 @@ export function GlobeView({
           views={views}
           viewState={viewState}
           onViewStateChange={handleViewStateChange}
-          controller={{
-            inertia: true,
-            scrollZoom: { speed: 0.01, smooth: true },
-          }}
+          controller={true}
           onDragStart={handleInteractionStart}
           onDragEnd={handleInteractionEnd}
           layers={layers}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { GlobeView, PulsarToggle } from "@/components/globe";
 import { StatsBar, ZoneDetail, RegionList } from "@/components/dashboard";
 import { useZonesLive, useStats, useRegions } from "@/lib/hooks";
@@ -34,29 +34,29 @@ export default function Home() {
   const regions = regionsQuery.data?.regions ?? [];
 
   /** Select a zone and fly the camera to it. */
-  const handleZoneClick = (zone: InterferenceZone) => {
+  const handleZoneClick = useCallback((zone: InterferenceZone) => {
     setSelectedZone(zone);
     setFlyTo({
       latitude: zone.center_lat,
       longitude: zone.center_lon,
       zoom: 4.5,
     });
-  };
+  }, []);
 
   /** Fly the camera to a region's center coordinates. */
-  const handleRegionClick = (target: {
+  const handleRegionClick = useCallback((target: {
     latitude: number;
     longitude: number;
     zoom: number;
   }) => {
     setFlyTo(target);
-  };
+  }, []);
 
   /** Close the zone detail panel and reset camera. */
-  const handleCloseDetail = () => {
+  const handleCloseDetail = useCallback(() => {
     setSelectedZone(null);
     setFlyTo(null);
-  };
+  }, []);
 
   /** Retry all failed queries. */
   const handleRetry = () => {
@@ -65,7 +65,7 @@ export default function Home() {
     regionsQuery.refetch();
   };
 
-  const isError = zonesQuery.isError && statsQuery.isError;
+  const isError = zonesQuery.isError || statsQuery.isError;
 
   return (
     <div className="relative w-full h-screen overflow-hidden">

@@ -38,7 +38,7 @@ def upgrade() -> None:
         sa.Column("affected_aircraft", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("start_time", sa.DateTime(timezone=True), nullable=False),
         sa.Column("end_time", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("status", sa.String(10), nullable=False, server_default="'active'"),
+        sa.Column("status", sa.String(10), nullable=False, server_default="active"),
         sa.Column("region", sa.String(30), nullable=False),
         sa.Column("is_live", sa.Boolean(), nullable=False, server_default="false"),
         sa.Column("gps_jam_radius_km", sa.Double(), nullable=True),

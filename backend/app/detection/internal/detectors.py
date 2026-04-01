@@ -138,11 +138,16 @@ def detect_position_jump(
     if actual_dist > max_possible or actual_dist > ABSOLUTE_JUMP_LIMIT:
         jump_ratio = actual_dist / max_possible if max_possible > 0 else 10.0
         confidence = min(1.0, (jump_ratio - 1) / 5)
+        # Ensure minimum confidence for absolute limit breaches.
+        if actual_dist > ABSOLUTE_JUMP_LIMIT:
+            confidence = max(confidence, 0.3)
+        else:
+            confidence = max(confidence, 0.0)
         flags.append(AnomalyFlag(
             detector="position_jump",
             value=actual_dist,
             threshold=max_possible,
-            confidence=max(confidence, 0.0),
+            confidence=confidence,
             detail=f"{actual_dist / 1000:.1f} km jump in {dt} seconds "
                    f"(max possible: {max_possible / 1000:.1f} km)",
         ))
@@ -155,7 +160,6 @@ def detect_position_jump(
 # ---------------------------------------------------------------------------
 
 ALTITUDE_DIVERGENCE_WARN = 200.0      # meters
-ALTITUDE_DIVERGENCE_CRITICAL = 500.0  # meters
 ALTITUDE_RATE_LIMIT = 100.0           # m/s
 
 
@@ -199,8 +203,8 @@ def detect_altitude(
     dt = current.timestamp - previous.timestamp
     if dt > 0:
         # Use geo_altitude preferentially, fall back to baro.
-        alt_curr = current.geo_altitude or current.baro_altitude
-        alt_prev = previous.geo_altitude or previous.baro_altitude
+        alt_curr = current.geo_altitude if current.geo_altitude is not None else current.baro_altitude
+        alt_prev = previous.geo_altitude if previous.geo_altitude is not None else previous.baro_altitude
         if alt_curr is not None and alt_prev is not None:
             rate = abs(alt_curr - alt_prev) / dt
             if rate > ALTITUDE_RATE_LIMIT:
@@ -270,7 +274,6 @@ def _check_divergence_trend(
 # ---------------------------------------------------------------------------
 
 HEADING_WARN = 30.0        # degrees
-HEADING_CRITICAL = 90.0    # degrees
 HEADING_MIN_DISTANCE = 500.0  # meters (need enough for reliable bearing)
 
 

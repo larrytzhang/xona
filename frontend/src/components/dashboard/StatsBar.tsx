@@ -5,7 +5,10 @@ import { LivePulse } from "@/components/globe";
 import type { StatsResponse } from "@/lib/types";
 
 /**
- * Animate a number counting up from 0 to target over duration ms.
+ * Animate a number counting up from the previous value to the new target.
+ *
+ * On first render animates from 0. On subsequent target changes, animates
+ * from the old value to the new one — avoids jarring resets to zero.
  *
  * @param target - The final number to reach.
  * @param duration - Animation duration in milliseconds.
@@ -13,17 +16,20 @@ import type { StatsResponse } from "@/lib/types";
  */
 function useCountUp(target: number, duration = 1500): number {
   const [value, setValue] = useState(0);
+  const prevTarget = useRef(0);
   const startTime = useRef<number | null>(null);
   const rafId = useRef<number | null>(null);
 
   useEffect(() => {
+    const from = prevTarget.current;
+    prevTarget.current = target;
     startTime.current = null;
 
     const animate = (timestamp: number) => {
       if (startTime.current === null) startTime.current = timestamp;
       const progress = Math.min((timestamp - startTime.current) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-      setValue(Math.round(eased * target));
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.round(from + eased * (target - from)));
       if (progress < 1) {
         rafId.current = requestAnimationFrame(animate);
       }

@@ -248,7 +248,7 @@ def build_zones_from_clusters(
         elif "jamming" in types:
             event_type = "jamming"
         else:
-            event_type = "spoofing"  # default for anomaly-only clusters
+            event_type = "mixed"  # uncertain cluster, multiple possible types
 
         region = classify_zone(center_lat, center_lon)
         ts = datetime.fromtimestamp(snapshot_time, tz=timezone.utc)

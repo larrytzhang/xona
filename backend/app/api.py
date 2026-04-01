@@ -15,7 +15,7 @@ Endpoints:
 """
 
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, select, text
@@ -136,6 +136,16 @@ async def get_zones_live(
         )
         zones = result.scalars().all()
 
+        # Fallback: if no recent zones, show the most recent historical zones
+        # so the globe is never empty when seed data exists.
+        if not zones:
+            result = await session.execute(
+                select(InterferenceZone)
+                .order_by(InterferenceZone.start_time.desc())
+                .limit(200)
+            )
+            zones = result.scalars().all()
+
     zone_responses = [_zone_to_response(z) for z in zones]
 
     return {
@@ -151,7 +161,7 @@ async def get_zones_history(
     start_date: str = Query(..., description="Start date (ISO format)"),
     end_date: str = Query(..., description="End date (ISO format)"),
     region: Optional[str] = Query(default=None, description="Filter by region"),
-    event_type: Optional[str] = Query(default=None, description="spoofing, jamming, or mixed"),
+    event_type: Optional[Literal["spoofing", "jamming", "mixed"]] = Query(default=None, description="spoofing, jamming, or mixed"),
     min_severity: Optional[int] = Query(default=None, ge=0, le=100, description="Minimum severity"),
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=50, ge=1, le=200, description="Results per page"),
@@ -419,7 +429,7 @@ REGION_DISPLAY_NAMES = {
 
 @router.get("/api/regions", response_model=RegionsResponse)
 async def get_regions(
-    period: str = Query(default="monthly", description="daily, weekly, or monthly"),
+    period: Literal["daily", "weekly", "monthly"] = Query(default="monthly", description="daily, weekly, or monthly"),
 ) -> dict:
     """
     Get per-region breakdown with trend data.
@@ -464,7 +474,11 @@ async def get_regions(
     trends: dict[str, list[dict]] = {}
     for stat in stats:
         trends.setdefault(stat.region, []).append({
-            "period": stat.period_start.strftime("%Y-%m"),
+            "period": stat.period_start.strftime(
+                "%Y-%m-%d" if period == "daily"
+                else "%Y-W%V" if period == "weekly"
+                else "%Y-%m"
+            ),
             "events": stat.total_events,
         })
 

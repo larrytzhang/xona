@@ -23,7 +23,7 @@ export function RadiusAnimation() {
       <h2 className="text-2xl font-bold mb-2">Jamming Radius Reduction</h2>
       <p className="text-text-secondary mb-6">
         A jammer that affects a 150 km radius with GPS would only affect 24 km
-        with Pulsar — 97% less area.
+        with Pulsar — 97.5% less area.
       </p>
 
       <div className="flex justify-center mb-6">

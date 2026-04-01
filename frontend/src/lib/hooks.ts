@@ -92,6 +92,7 @@ export function useStats() {
     queryKey: ["stats"],
     queryFn: fetchStats,
     staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000,
   });
 }
 
@@ -119,5 +120,6 @@ export function useRegions(period: string = "monthly") {
     queryKey: ["regions", period],
     queryFn: () => fetchRegions(period),
     staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
   });
 }

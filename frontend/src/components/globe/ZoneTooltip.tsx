@@ -31,7 +31,7 @@ export function ZoneTooltip({
 
   return (
     <div
-      className="fixed z-50 pointer-events-none glass rounded-lg px-3 py-2 text-sm min-w-[180px]"
+      className="absolute z-50 pointer-events-none glass rounded-lg px-3 py-2 text-sm min-w-[180px]"
       style={{ left: x + 12, top: y + 12 }}
     >
       <div className="flex items-center gap-2 mb-1">

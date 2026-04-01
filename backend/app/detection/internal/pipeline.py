@@ -172,6 +172,45 @@ class AnomalyPipeline:
                     for flag in anomaly.detection.flags:
                         flag.confidence = min(1.0, flag.confidence + confidence_boost)
 
+        # Step 6b: Re-classify and re-score clustered anomalies with cluster context.
+        # Scoring uses 25% weight for cluster membership, but initial scoring
+        # happens before clustering. This second pass corrects severity and
+        # applies classifier Rule 5 (cluster adoption) with cluster info.
+        for cluster in clusters:
+            if len(cluster) < 3:
+                continue
+            # Determine dominant cluster classification.
+            type_counts: dict[str, int] = {}
+            for a in cluster:
+                type_counts[a.anomaly_type] = type_counts.get(a.anomaly_type, 0) + 1
+            cluster_classification = max(type_counts, key=type_counts.get)
+
+            for anomaly in cluster:
+                # Re-classify with cluster context.
+                new_type = classify(
+                    anomaly.detection.flags,
+                    is_clustered=True,
+                    cluster_classification=cluster_classification,
+                )
+                if new_type != "normal":
+                    anomaly.anomaly_type = new_type
+
+                # Re-score with cluster info.
+                altitude = (
+                    anomaly.detection.aircraft.geo_altitude
+                    if anomaly.detection.aircraft.geo_altitude is not None
+                    else anomaly.detection.aircraft.baro_altitude
+                )
+                new_severity, new_label = compute_severity(
+                    anomaly.detection.flags,
+                    is_clustered=True,
+                    cluster_size=len(cluster),
+                    consecutive_anomalous=anomaly.detection.consecutive_anomalous,
+                    altitude=altitude,
+                )
+                anomaly.severity = new_severity
+                anomaly.severity_label = new_label
+
         # Step 7: Detect signal loss events.
         signal_loss_zones = detect_signal_loss(
             current_icao24s=current_icao24s,

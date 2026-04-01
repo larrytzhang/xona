@@ -8,8 +8,7 @@ import { REGION_NAMES, severityColor, severityLabel } from "@/lib/constants";
  * Zone detail panel that slides in from the right when a zone is clicked.
  *
  * Displays zone header, location, duration, Pulsar comparison, and
- * affected aircraft count. Framer Motion slide animation is handled
- * via CSS transitions for simplicity.
+ * affected aircraft count. Slide animation via CSS keyframes.
  *
  * @param zone - The selected zone, or null to hide.
  * @param onClose - Callback to close the panel.
@@ -66,6 +65,7 @@ export function ZoneDetail({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close zone detail"
             className="p-1 rounded hover:bg-bg-elevated transition-colors"
           >
             <X size={18} className="text-text-muted" />

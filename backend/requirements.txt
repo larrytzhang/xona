@@ -3,6 +3,7 @@ uvicorn[standard]
 sqlalchemy[asyncio]
 asyncpg
 pydantic-settings
+pydantic
 httpx
 numpy
 scipy
@@ -10,8 +11,3 @@ scikit-learn
 alembic
 tqdm
 rich
-pytest
-pytest-asyncio
-pytest-cov
-httpx
-ruff

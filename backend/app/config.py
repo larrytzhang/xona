@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     OPENSKY_PASSWORD: str = ""
     POLL_INTERVAL_SECONDS: int = 22
     CORS_ORIGINS: str = "http://localhost:3000"
+    LIVE_POLLING_ENABLED: bool = True
     LOG_LEVEL: str = "INFO"
 
     @property

@@ -21,7 +21,7 @@ interface PulsarToggleProps {
  * THE key feature of the app — the visual "aha" moment for executives.
  *
  * GPS Mode (default): Shows full interference radii, red/orange zones.
- * Pulsar Mode: Zones shrink 97%, shift to cyan, "spoofing eliminated" labels.
+ * Pulsar Mode: Zones shrink 97.5%, shift to cyan, "spoofing eliminated" labels.
  *
  * The toggle itself is a glass panel with a prominent switch and
  * clear labeling of both modes.
@@ -34,6 +34,9 @@ export function PulsarToggle({ active, onToggle }: PulsarToggleProps) {
     <div className="absolute top-20 right-4 z-40">
       <button
         onClick={onToggle}
+        role="switch"
+        aria-checked={active}
+        aria-label="Toggle Pulsar Mode"
         className={clsx(
           "glass rounded-xl px-4 py-3 flex items-center gap-3 transition-all duration-300",
           "hover:border-accent-cyan/30",
@@ -79,7 +82,7 @@ export function PulsarToggle({ active, onToggle }: PulsarToggleProps) {
           </div>
           <span className="text-[10px] text-text-muted leading-tight">
             {active
-              ? "97% area reduction • spoofing eliminated"
+              ? "97.5% area reduction • spoofing eliminated"
               : "Current GPS vulnerability"}
           </span>
         </div>
