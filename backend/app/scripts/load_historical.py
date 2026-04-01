@@ -201,7 +201,7 @@ async def _store_results(
             zi = anomaly_zone_map.get(key)
             zone_id = (
                 db_zones[zi].id if zi is not None and zi < len(db_zones)
-                else (db_zones[0].id if db_zones else None)
+                else None
             )
 
             ae = AnomalyEvent(
