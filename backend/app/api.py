@@ -4,6 +4,11 @@ GPS Shield — API Route Handlers.
 All REST API endpoints for the GPS Shield platform. Matches the
 contracts defined in Part 6 of the master plan exactly.
 
+Security:
+    - All endpoints are rate-limited via slowapi (configurable via RATE_LIMIT).
+    - Input validation enforces bounds on pagination, date ranges, and enums.
+    - All queries use parameterized SQLAlchemy — no SQL injection risk.
+
 Endpoints:
     GET /health              — System health check.
     GET /api/zones/live      — Active interference zones.
@@ -34,6 +39,15 @@ from app.schemas import (
 
 router = APIRouter()
 
+# Valid region identifiers — reject anything else.
+VALID_REGIONS = frozenset({
+    "baltic_sea", "eastern_med", "persian_gulf", "red_sea",
+    "black_sea", "ukraine_frontline", "south_china_sea", "other",
+})
+
+# Maximum date range span to prevent full-table scans.
+MAX_DATE_RANGE_DAYS = 365
+
 
 # ---------------------------------------------------------------------------
 # Health
@@ -47,9 +61,6 @@ async def health_check() -> dict:
 
     Checks database connectivity and live polling state. Used by
     monitoring, load balancers, and the frontend status indicator.
-
-    Returns:
-        HealthResponse with status, database, polling, and version info.
     """
     from app.main import live_state
 
@@ -76,15 +87,7 @@ async def health_check() -> dict:
 
 
 def _zone_to_response(zone: InterferenceZone) -> dict:
-    """
-    Convert an InterferenceZone ORM model to a response dict.
-
-    Args:
-        zone: InterferenceZone database model instance.
-
-    Returns:
-        Dict matching ZoneResponse schema.
-    """
+    """Convert an InterferenceZone ORM model to a response dict."""
     return {
         "id": zone.id,
         "center_lat": zone.center_lat,
@@ -114,14 +117,8 @@ async def get_zones_live(
     Get currently active interference zones.
 
     Returns zones detected within the last `hours_back` hours,
-    prioritizing live-detected zones. Uses the in-memory cache for
-    the latest poll data and falls back to the database.
-
-    Args:
-        hours_back: How many hours back to search (default 24, max 168).
-
-    Returns:
-        ZonesLiveResponse with zone count, poll status, and zone list.
+    prioritizing live-detected zones. Falls back to most recent
+    historical data when no live zones exist.
     """
     from app.main import live_state
 
@@ -158,34 +155,42 @@ async def get_zones_live(
 
 @router.get("/api/zones/history", response_model=ZonesHistoryResponse)
 async def get_zones_history(
-    start_date: str = Query(..., description="Start date (ISO format)"),
-    end_date: str = Query(..., description="End date (ISO format)"),
-    region: Optional[str] = Query(default=None, description="Filter by region"),
+    start_date: str = Query(..., description="Start date (ISO format, e.g. 2025-10-01)"),
+    end_date: str = Query(..., description="End date (ISO format, e.g. 2026-03-30)"),
+    region: Optional[str] = Query(default=None, description="Filter by region slug"),
     event_type: Optional[Literal["spoofing", "jamming", "mixed"]] = Query(default=None, description="spoofing, jamming, or mixed"),
-    min_severity: Optional[int] = Query(default=None, ge=0, le=100, description="Minimum severity"),
-    page: int = Query(default=1, ge=1, description="Page number"),
-    page_size: int = Query(default=50, ge=1, le=200, description="Results per page"),
+    min_severity: Optional[int] = Query(default=None, ge=0, le=100, description="Minimum severity (0-100)"),
+    page: int = Query(default=1, ge=1, le=10000, description="Page number (max 10000)"),
+    page_size: int = Query(default=50, ge=1, le=100, description="Results per page (max 100)"),
 ) -> dict:
     """
     Get historical interference zones with filters and pagination.
 
-    Args:
-        start_date: Start date string (ISO format, e.g., '2025-10-01').
-        end_date: End date string (ISO format, e.g., '2026-03-30').
-        region: Optional region filter.
-        event_type: Optional event type filter.
-        min_severity: Optional minimum severity filter.
-        page: Page number (1-indexed).
-        page_size: Results per page (max 200).
-
-    Returns:
-        ZonesHistoryResponse with total count, pagination, and zone list.
+    Input validation:
+        - Dates must be valid ISO format.
+        - Date range cannot exceed 365 days (prevents full-table scans).
+        - Region must be a known identifier if provided.
+        - Page capped at 10,000; page_size capped at 100.
     """
+    # Parse and validate dates.
     try:
         start = datetime.fromisoformat(start_date).replace(tzinfo=timezone.utc)
         end = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc)
     except ValueError:
         raise HTTPException(status_code=422, detail="Invalid date format. Use ISO format (YYYY-MM-DD).")
+
+    if end < start:
+        raise HTTPException(status_code=422, detail="end_date must be after start_date.")
+
+    if (end - start).days > MAX_DATE_RANGE_DAYS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Date range cannot exceed {MAX_DATE_RANGE_DAYS} days.",
+        )
+
+    # Validate region if provided.
+    if region and region not in VALID_REGIONS:
+        raise HTTPException(status_code=422, detail=f"Unknown region: {region}")
 
     query = select(InterferenceZone).where(
         InterferenceZone.start_time >= start,
@@ -207,11 +212,9 @@ async def get_zones_history(
         count_query = count_query.where(InterferenceZone.severity >= min_severity)
 
     async with async_session() as session:
-        # Get total count.
         result = await session.execute(count_query)
         total_count = result.scalar() or 0
 
-        # Get paginated results.
         offset = (page - 1) * page_size
         result = await session.execute(
             query.order_by(InterferenceZone.start_time.desc())
@@ -233,15 +236,12 @@ async def get_zone_detail(zone_id: int) -> dict:
     """
     Get detailed view of a single zone with its aircraft events.
 
-    Args:
-        zone_id: Primary key of the interference zone.
-
-    Returns:
-        ZoneDetailResponse with full zone data and related events.
-
-    Raises:
-        HTTPException 404: If zone_id does not exist.
+    Returns 404 if zone_id does not exist. Events capped at 100.
     """
+    # Reject obviously invalid IDs without hitting DB.
+    if zone_id < 1 or zone_id > 2_147_483_647:
+        raise HTTPException(status_code=404, detail=f"Zone {zone_id} not found")
+
     async with async_session() as session:
         result = await session.execute(
             select(InterferenceZone).where(InterferenceZone.id == zone_id)
@@ -292,28 +292,21 @@ async def get_stats() -> dict:
 
     Computes aggregate counts across all events and zones, including
     live polling status from the in-memory cache.
-
-    Returns:
-        StatsResponse with totals, date range, type breakdown, and live stats.
     """
     from app.main import live_state
 
     async with async_session() as session:
-        # Total events.
         result = await session.execute(select(func.count(AnomalyEvent.id)))
         total_events = result.scalar() or 0
 
-        # Total zones.
         result = await session.execute(select(func.count(InterferenceZone.id)))
         total_zones = result.scalar() or 0
 
-        # Unique aircraft.
         result = await session.execute(
             select(func.count(func.distinct(AnomalyEvent.icao24)))
         )
         total_aircraft = result.scalar() or 0
 
-        # Date range.
         result = await session.execute(
             select(func.min(AnomalyEvent.ts), func.max(AnomalyEvent.ts))
         )
@@ -321,18 +314,15 @@ async def get_stats() -> dict:
         min_date = row[0] or datetime(2025, 10, 1, tzinfo=timezone.utc)
         max_date = row[1] or datetime(2026, 3, 30, tzinfo=timezone.utc)
 
-        # By type.
         result = await session.execute(
             select(AnomalyEvent.anomaly_type, func.count(AnomalyEvent.id))
             .group_by(AnomalyEvent.anomaly_type)
         )
         by_type_dict = dict(result.all())
 
-        # Average severity.
         result = await session.execute(select(func.avg(AnomalyEvent.severity)))
         avg_severity = result.scalar() or 0.0
 
-        # Active zones count.
         result = await session.execute(
             select(func.count(InterferenceZone.id)).where(
                 InterferenceZone.status == "active"
@@ -340,7 +330,6 @@ async def get_stats() -> dict:
         )
         active_zones = result.scalar() or 0
 
-        # Events last hour.
         hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
         result = await session.execute(
             select(func.count(AnomalyEvent.id)).where(AnomalyEvent.ts >= hour_ago)
@@ -358,8 +347,6 @@ async def get_stats() -> dict:
         "by_type": {
             "spoofing": by_type_dict.get("spoofing", 0),
             "jamming": by_type_dict.get("jamming", 0),
-            # DB stores unclassified events as 'anomaly'; API surfaces as 'mixed'
-            # to match the zone-level terminology in the frontend.
             "mixed": by_type_dict.get("anomaly", 0),
         },
         "avg_severity": round(float(avg_severity), 1),
@@ -381,12 +368,6 @@ async def get_stats() -> dict:
 async def get_findings() -> dict:
     """
     Get pre-computed key findings for the narrative dashboard.
-
-    Returns the 5 headline findings computed by compute_findings.py,
-    sorted by their display order.
-
-    Returns:
-        FindingsResponse with findings list and computation timestamp.
     """
     async with async_session() as session:
         result = await session.execute(
@@ -433,18 +414,8 @@ async def get_regions(
 ) -> dict:
     """
     Get per-region breakdown with trend data.
-
-    Returns all regions with event counts, type breakdowns,
-    aircraft counts, and time-series trend data.
-
-    Args:
-        period: Aggregation period ('daily', 'weekly', or 'monthly').
-
-    Returns:
-        RegionsResponse with region breakdown list.
     """
     async with async_session() as session:
-        # Get region aggregates.
         result = await session.execute(
             select(
                 AnomalyEvent.region,
@@ -462,7 +433,6 @@ async def get_regions(
         )
         region_rows = result.all()
 
-        # Get trend data from region_stats.
         result = await session.execute(
             select(RegionStat)
             .where(RegionStat.period == period)
@@ -470,7 +440,6 @@ async def get_regions(
         )
         stats = result.scalars().all()
 
-    # Build trend lookup.
     trends: dict[str, list[dict]] = {}
     for stat in stats:
         trends.setdefault(stat.region, []).append({

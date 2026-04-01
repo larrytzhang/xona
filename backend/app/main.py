@@ -20,10 +20,14 @@ from typing import AsyncGenerator
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import text
 
 from app.api import router
 from app.config import settings
+from app.rate_limit import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -206,6 +210,11 @@ app = FastAPI(
         {"name": "Analytics", "description": "Statistics, findings, and region breakdowns"},
     ],
 )
+
+# Rate limiting — global 60 req/min per IP, returns 429 with Retry-After.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # CORS middleware
 app.add_middleware(

@@ -59,8 +59,8 @@ class OpenSkyClient:
         If OPENSKY_USERNAME is set, uses HTTP basic auth for higher rate limits.
         """
         self._auth: Optional[tuple[str, str]] = None
-        if settings.OPENSKY_USERNAME and settings.OPENSKY_PASSWORD:
-            self._auth = (settings.OPENSKY_USERNAME, settings.OPENSKY_PASSWORD)
+        if settings.OPENSKY_USERNAME and settings.opensky_password_value:
+            self._auth = (settings.OPENSKY_USERNAME, settings.opensky_password_value)
 
         self._client = httpx.AsyncClient(
             base_url=OPENSKY_BASE_URL,
