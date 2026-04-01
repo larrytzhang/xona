@@ -1,7 +1,7 @@
 "use client";
 
 import { FindingCard, TrendChart, RegionChart } from "@/components/findings";
-import { useFindings, useRegions } from "@/lib/hooks";
+import { useFindings, useRegions, useStats } from "@/lib/hooks";
 
 /**
  * Key Findings page — data-driven insights from the GPS interference analysis.
@@ -16,17 +16,20 @@ import { useFindings, useRegions } from "@/lib/hooks";
 export default function FindingsPage() {
   const findingsQuery = useFindings();
   const regionsQuery = useRegions();
+  const statsQuery = useStats();
 
   const findings = findingsQuery.data?.findings ?? [];
   const regions = regionsQuery.data?.regions ?? [];
+  const dateRange = statsQuery.data?.date_range;
 
-  const isLoading = findingsQuery.isLoading || regionsQuery.isLoading;
-  const isError = findingsQuery.isError || regionsQuery.isError;
+  const isLoading = findingsQuery.isLoading || regionsQuery.isLoading || statsQuery.isLoading;
+  const isError = findingsQuery.isError || regionsQuery.isError || statsQuery.isError;
 
   /** Retry failed queries. */
   const handleRetry = () => {
     findingsQuery.refetch();
     regionsQuery.refetch();
+    statsQuery.refetch();
   };
 
   return (
@@ -35,8 +38,9 @@ export default function FindingsPage() {
       <div className="mb-10">
         <h1 className="text-3xl font-bold mb-2">Key Findings</h1>
         <p className="text-text-secondary">
-          Analysis of GPS interference events detected across 7 global conflict zones,
-          October 2025 — March 2026. Data source: OpenSky Network ADS-B data.
+          Analysis of GPS interference events detected across 7 global conflict zones
+          {dateRange ? `, ${new Date(dateRange.start).toLocaleDateString("en-US", { month: "long", year: "numeric" })} — ${new Date(dateRange.end).toLocaleDateString("en-US", { month: "long", year: "numeric" })}` : ""}.
+          Data source: OpenSky Network ADS-B data.
         </p>
       </div>
 
