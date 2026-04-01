@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import DeckGL from "@deck.gl/react";
+import dynamic from "next/dynamic";
 import { _GlobeView as DeckGlobeView } from "@deck.gl/core";
+
+const DeckGL = dynamic(() => import("@deck.gl/react").then((m) => m.default), {
+  ssr: false,
+});
 import { BitmapLayer, ScatterplotLayer } from "@deck.gl/layers";
 import {
   ANIMATION,
