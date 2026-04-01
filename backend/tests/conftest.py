@@ -27,7 +27,7 @@ def event_loop():
     loop.close()
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="session")
 async def async_client() -> AsyncGenerator[AsyncClient, None]:
     """
     Provide an httpx AsyncClient connected to the FastAPI test app.
