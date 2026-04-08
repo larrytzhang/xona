@@ -64,3 +64,10 @@ historical_checkpoint.json
 # Plans (keep out of prod repo)
 plans/
 docs/superpowers/
+
+# Build scaffolding / planning docs
+FIXPLAN.md
+master-plan.txt
+CLAUDE.md
+EXECUTION_RULES.md
+ARCHITECTURE.md

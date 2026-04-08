@@ -40,7 +40,7 @@ export default function FindingsPage() {
         <p className="text-text-secondary">
           Analysis of GPS interference events detected across 7 global conflict zones
           {dateRange ? `, ${new Date(dateRange.start).toLocaleDateString("en-US", { month: "long", year: "numeric" })} — ${new Date(dateRange.end).toLocaleDateString("en-US", { month: "long", year: "numeric" })}` : ""}.
-          Data source: OpenSky Network ADS-B data.
+          Data source: synthetic ADS-B data modeling real-world GPS interference patterns.
         </p>
       </div>
 

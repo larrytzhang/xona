@@ -17,16 +17,24 @@ import type { InterferenceZone } from "@/lib/types";
  * backend API via React Query hooks. Shows loading/error/empty states
  * when the backend is unreachable or has no data.
  */
+const TIME_RANGES = [
+  { label: "Last 24 hours", hours: 24 },
+  { label: "Last 7 days", hours: 168 },
+  { label: "Last 30 days", hours: 720 },
+  { label: "All time", hours: 8760 },
+] as const;
+
 export default function Home() {
   const [pulsarMode, setPulsarMode] = useState(false);
   const [selectedZone, setSelectedZone] = useState<InterferenceZone | null>(null);
+  const [hoursBack, setHoursBack] = useState(24);
   const [flyTo, setFlyTo] = useState<{
     latitude: number;
     longitude: number;
     zoom: number;
   } | null>(null);
 
-  const zonesQuery = useZonesLive();
+  const zonesQuery = useZonesLive(hoursBack);
   const statsQuery = useStats();
   const regionsQuery = useRegions();
 
@@ -98,12 +106,21 @@ export default function Home() {
         </div>
       )}
 
-      {/* Globe loading spinner — shown while zones are loading for the first time */}
+      {/* Loading skeleton — shown while zones are loading for the first time */}
       {zonesQuery.isLoading && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-accent-cyan/30 border-t-accent-cyan rounded-full animate-spin" />
-            <span className="text-text-muted text-sm">Loading zone data...</span>
+        <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none bg-bg-primary/80">
+          <div className="flex flex-col items-center gap-4">
+            {/* Animated radar sweep */}
+            <div className="relative w-20 h-20">
+              <div className="absolute inset-0 border-2 border-accent-cyan/20 rounded-full" />
+              <div className="absolute inset-2 border-2 border-accent-cyan/10 rounded-full" />
+              <div className="absolute inset-4 border-2 border-accent-cyan/5 rounded-full" />
+              <div className="absolute inset-0 border-2 border-transparent border-t-accent-cyan rounded-full animate-spin" style={{ animationDuration: '1.5s' }} />
+            </div>
+            <div className="text-center">
+              <p className="text-text-primary text-sm font-medium">Loading GPS Shield</p>
+              <p className="text-text-muted text-xs mt-1">Initializing globe and zone data...</p>
+            </div>
           </div>
         </div>
       )}
@@ -129,6 +146,24 @@ export default function Home() {
         activeRegion={selectedZone?.region ?? null}
         onRegionClick={handleRegionClick}
       />
+
+      {/* Time range selector */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 glass rounded-lg px-3 py-2 flex items-center gap-2">
+        <span className="text-text-muted text-xs hidden sm:inline">Range:</span>
+        {TIME_RANGES.map((range) => (
+          <button
+            key={range.hours}
+            onClick={() => setHoursBack(range.hours)}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              hoursBack === range.hours
+                ? "bg-accent-cyan/20 text-accent-cyan font-medium"
+                : "text-text-muted hover:text-text-primary"
+            }`}
+          >
+            {range.label}
+          </button>
+        ))}
+      </div>
 
       {/* Pulsar toggle */}
       <PulsarToggle

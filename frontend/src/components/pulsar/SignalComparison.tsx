@@ -4,7 +4,7 @@
  * Animated horizontal bar chart comparing GPS and Pulsar signal strengths.
  *
  * Shows GPS L1, GPS L5, and Pulsar signal power in dBW with animated
- * bars that grow on scroll into view. Demonstrates Pulsar's 100x
+ * bars that grow on scroll into view. Demonstrates Pulsar's ~178x
  * signal strength advantage.
  *
  * @returns The signal comparison section element.

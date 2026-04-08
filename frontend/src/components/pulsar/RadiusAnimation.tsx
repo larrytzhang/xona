@@ -4,7 +4,7 @@
  * Animated SVG comparing GPS vs Pulsar jamming radii.
  *
  * Two concentric circles: outer red (GPS radius) and inner cyan (Pulsar).
- * Visually demonstrates the 97% area reduction — the Pulsar circle is
+ * Visually demonstrates the 97.5% area reduction — the Pulsar circle is
  * dramatically smaller than the GPS circle.
  *
  * @returns The radius comparison SVG element.

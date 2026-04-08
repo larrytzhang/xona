@@ -164,9 +164,9 @@ async def compute_findings() -> None:
                 "value": "100% spoofing eliminated",
                 "detail": (
                     f"Pulsar's cryptographic authentication would eliminate all "
-                    f"{spoofing_count:,} spoofing events. Its 100x signal strength "
+                    f"{spoofing_count:,} spoofing events. Its ~178x signal strength "
                     f"would reduce the effective area of all {jamming_count:,} "
-                    f"jamming events by 97%."
+                    f"jamming events by 97.5%."
                 ),
                 "sort_order": 5,
             },

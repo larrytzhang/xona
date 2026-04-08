@@ -2,15 +2,24 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { Nav } from "@/components/ui";
+import { MobileBanner } from "@/components/ui/MobileBanner";
 
 /**
  * Root metadata for GPS Shield.
  * Sets page title and description for the entire app.
  */
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: "GPS Shield — GPS Anomaly Detection Engine",
   description:
     "Analyzing millions of flight records to map the GPS spoofing crisis and model how next-generation LEO navigation solves it.",
+  openGraph: {
+    title: "GPS Shield — GPS Anomaly Detection Engine",
+    description:
+      "Detecting GPS spoofing and jamming across 7 conflict zones. Toggle Pulsar Mode to see how Xona's LEO constellation would neutralize each threat.",
+    type: "website",
+    images: ["/og-image.png"],
+  },
 };
 
 /**
@@ -44,12 +53,7 @@ export default function RootLayout({
       <body className="bg-bg-primary text-text-primary antialiased min-h-screen">
         <Providers>
           <Nav />
-          {/* Mobile notice — banner instead of full overlay */}
-          <div className="sm:hidden fixed top-0 left-0 right-0 z-[100] bg-bg-surface border-b border-border-subtle px-4 py-3 text-center">
-            <p className="text-text-muted text-xs">
-              Best experienced on desktop. The 3D globe requires a larger screen.
-            </p>
-          </div>
+          <MobileBanner />
           <main className="relative">{children}</main>
         </Providers>
       </body>
