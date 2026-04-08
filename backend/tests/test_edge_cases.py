@@ -26,7 +26,6 @@ from app.detection.interfaces.models import (
 )
 from app.detection.internal.classifier import classify
 from app.detection.internal.clusterer import (
-    CLUSTER_MIN_AIRCRAFT,
     build_zones_from_clusters,
     cluster_anomalies,
     detect_signal_loss,
@@ -34,7 +33,6 @@ from app.detection.internal.clusterer import (
 from app.detection.internal.detectors import (
     ABSOLUTE_JUMP_LIMIT,
     ALTITUDE_DIVERGENCE_WARN,
-    ALTITUDE_RATE_LIMIT,
     HEADING_MIN_DISTANCE,
     HEADING_WARN,
     VELOCITY_HARD_LIMIT,
@@ -45,7 +43,6 @@ from app.detection.internal.detectors import (
 )
 from app.detection.internal.geo import angular_difference, compute_bearing, haversine
 from app.detection.internal.scorer import (
-    SEVERITY_LABELS,
     _altitude_risk,
     _get_severity_label,
     compute_severity,
