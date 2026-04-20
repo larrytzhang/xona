@@ -1,6 +1,7 @@
 "use client";
 
 import { FindingCard, TrendChart, RegionChart } from "@/components/findings";
+import { Footer } from "@/components/ui";
 import { useFindings, useRegions, useStats } from "@/lib/hooks";
 
 /**
@@ -33,14 +34,16 @@ export default function FindingsPage() {
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-16 px-6 max-w-5xl mx-auto">
+    <>
+      <div className="min-h-screen pt-20 pb-8 px-6 max-w-5xl mx-auto">
       {/* Hero */}
       <div className="mb-10">
-        <h1 className="text-3xl font-bold mb-2">Key Findings</h1>
-        <p className="text-text-secondary">
+        <h1 className="text-3xl md:text-4xl font-bold mb-2 tracking-tight">Key Findings</h1>
+        <p className="text-text-secondary leading-relaxed max-w-2xl">
           Analysis of GPS interference events detected across 7 global conflict zones
           {dateRange ? `, ${new Date(dateRange.start).toLocaleDateString("en-US", { month: "long", year: "numeric" })} — ${new Date(dateRange.end).toLocaleDateString("en-US", { month: "long", year: "numeric" })}` : ""}.
-          Data source: synthetic ADS-B data modeling real-world GPS interference patterns.
+          Synthetic ADS-B data modeling real-world interference patterns — see{" "}
+          <a href="/methodology" className="text-accent-cyan hover:underline">methodology</a>.
         </p>
       </div>
 
@@ -105,6 +108,8 @@ export default function FindingsPage() {
           <RegionChart regions={regions} />
         </div>
       )}
-    </div>
+      </div>
+      <Footer />
+    </>
   );
 }

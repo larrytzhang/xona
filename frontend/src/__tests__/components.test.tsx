@@ -48,6 +48,15 @@ jest.mock("lucide-react", () => ({
   Shield: (props: Record<string, unknown>) => (
     <span data-testid="icon-shield" {...props} />
   ),
+  HelpCircle: (props: Record<string, unknown>) => (
+    <span data-testid="icon-help" {...props} />
+  ),
+  Info: (props: Record<string, unknown>) => (
+    <span data-testid="icon-info" {...props} />
+  ),
+  X: (props: Record<string, unknown>) => (
+    <span data-testid="icon-x" {...props} />
+  ),
 }));
 
 // Mock the LivePulse component since StatsBar imports it
@@ -140,7 +149,7 @@ describe("Nav", () => {
     const findingsLink = screen.getByText("Findings").closest("a");
     expect(findingsLink).toHaveAttribute("href", "/findings");
 
-    const pulsarLink = screen.getByText("How Pulsar Works").closest("a");
+    const pulsarLink = screen.getByText("Pulsar").closest("a");
     expect(pulsarLink).toHaveAttribute("href", "/pulsar");
   });
 });

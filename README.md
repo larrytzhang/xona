@@ -89,8 +89,8 @@ cp ../.env.example .env
 alembic upgrade head
 
 # Seed demo data (or use load_historical for real data)
-python -m app.scripts.seed_demo
-python -m app.scripts.compute_findings
+python3 -m app.scripts.seed_demo
+python3 -m app.scripts.compute_findings
 
 # Start the server
 uvicorn app.main:app --reload
@@ -131,15 +131,14 @@ backend/
 
 frontend/
 ├── src/
-│   ├── app/                # Next.js App Router pages
+│   ├── app/                # Next.js App Router pages (globe, findings, pulsar, methodology)
 │   ├── components/
-│   │   ├── globe/          # deck.gl globe, Pulsar toggle, tooltips
+│   │   ├── globe/          # deck.gl globe, Pulsar toggle, tooltips, error boundary
 │   │   ├── dashboard/      # Stats bar, region list, zone detail
 │   │   ├── findings/       # Finding cards, trend/region charts
-│   │   ├── pulsar/         # Signal comparison, radius animation
-│   │   └── ui/             # Nav, GlassPanel
-│   ├── lib/                # Types, API client, hooks, constants
-│   └── mocks/              # Dev mock data
+│   │   ├── pulsar/         # Signal comparison, radius animation, jammer sandbox
+│   │   └── ui/             # Nav, Footer, welcome modal, creator credit
+│   └── lib/                # Types, API client, hooks, constants
 └── package.json
 ```
 

@@ -22,10 +22,10 @@ RUN useradd -r -s /bin/false appuser
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
+# Copy application code with the non-root user as owner.
+COPY --chown=appuser:appuser . .
 
-# Switch to non-root user
+# Switch to non-root user for runtime
 USER appuser
 
 # Run database migrations on startup, then start the server

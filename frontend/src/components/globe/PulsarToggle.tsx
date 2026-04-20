@@ -1,46 +1,53 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Shield } from "lucide-react";
 import { clsx } from "clsx";
 
-/**
- * Props for the PulsarToggle component.
- *
- * @param active - Whether Pulsar Mode is currently active.
- * @param onToggle - Callback when the toggle is clicked.
- */
 interface PulsarToggleProps {
   active: boolean;
   onToggle: () => void;
 }
 
 /**
- * GPS Mode / Pulsar Mode toggle switch.
+ * GPS Mode / Pulsar Mode toggle switch — the "aha moment" control.
  *
- * Positioned in the top-right corner of the globe view. This is
- * THE key feature of the app — the visual "aha" moment for executives.
- *
- * GPS Mode (default): Shows full interference radii, red/orange zones.
- * Pulsar Mode: Zones shrink 97.5%, shift to cyan, "spoofing eliminated" labels.
- *
- * The toggle itself is a glass panel with a prominent switch and
- * clear labeling of both modes.
- *
- * @param props - PulsarToggleProps
- * @returns The toggle component positioned absolutely in the top-right.
+ * Shows an attention pulse for the first ~12 seconds on load or until the
+ * user interacts with it, then stops — draws the eye to the killer feature
+ * without becoming annoying on repeated visits.
  */
 export function PulsarToggle({ active, onToggle }: PulsarToggleProps) {
+  // Attention pulse stops on first interaction or after 12s.
+  const [pulsing, setPulsing] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setPulsing(false), 12_000);
+    return () => clearTimeout(t);
+  }, []);
+  useEffect(() => {
+    if (active) setPulsing(false);
+  }, [active]);
+
   return (
     <div className="absolute top-20 right-4 z-40">
+      {/* Attention halo — stops pulsing after first toggle or timeout. */}
+      {pulsing && !active && (
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 rounded-xl bg-accent-cyan/10 animate-ping pointer-events-none"
+        />
+      )}
       <button
-        onClick={onToggle}
+        onClick={() => {
+          setPulsing(false);
+          onToggle();
+        }}
         role="switch"
         aria-checked={active}
         aria-label="Toggle Pulsar Mode"
         className={clsx(
-          "glass rounded-xl px-4 py-3 flex items-center gap-3 transition-all duration-300",
-          "hover:border-accent-cyan/30",
-          active && "border-accent-cyan/50 shadow-[0_0_20px_rgba(6,182,212,0.15)]"
+          "relative glass rounded-xl px-4 py-3 flex items-center gap-3 transition-all duration-300",
+          "hover:border-accent-cyan/40 hover:shadow-[0_0_16px_rgba(6,182,212,0.12)]",
+          active && "border-accent-cyan/50 shadow-[0_0_20px_rgba(6,182,212,0.18)]"
         )}
       >
         {/* Toggle track */}

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
-import { Nav } from "@/components/ui";
+import { Nav, WelcomeModal } from "@/components/ui";
 import { MobileBanner } from "@/components/ui/MobileBanner";
 
 /**
@@ -13,12 +13,23 @@ export const metadata: Metadata = {
   title: "GPS Shield — GPS Anomaly Detection Engine",
   description:
     "Analyzing millions of flight records to map the GPS spoofing crisis and model how next-generation LEO navigation solves it.",
+  applicationName: "GPS Shield",
+  authors: [{ name: "Larry Zhang" }],
   openGraph: {
     title: "GPS Shield — GPS Anomaly Detection Engine",
     description:
       "Detecting GPS spoofing and jamming across 7 conflict zones. Toggle Pulsar Mode to see how Xona's LEO constellation would neutralize each threat.",
     type: "website",
-    images: ["/og-image.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GPS Shield",
+    description:
+      "Detecting GPS spoofing and jamming worldwide. Toggle Pulsar Mode to see the LEO advantage.",
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 
@@ -54,6 +65,7 @@ export default function RootLayout({
         <Providers>
           <Nav />
           <MobileBanner />
+          <WelcomeModal />
           <main className="relative">{children}</main>
         </Providers>
       </body>

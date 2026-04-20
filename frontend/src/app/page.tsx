@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { GlobeView, PulsarToggle } from "@/components/globe";
 import { GlobeErrorBoundary } from "@/components/globe/GlobeErrorBoundary";
 import { StatsBar, ZoneDetail, RegionList } from "@/components/dashboard";
+import { GlobeCredit } from "@/components/ui";
 import { useZonesLive, useStats, useRegions } from "@/lib/hooks";
 import type { InterferenceZone } from "@/lib/types";
 
@@ -173,6 +174,9 @@ export default function Home() {
 
       {/* Zone detail panel */}
       <ZoneDetail zone={selectedZone} onClose={handleCloseDetail} />
+
+      {/* Compact creator credit — only shown on the full-bleed globe */}
+      <GlobeCredit />
     </div>
   );
 }

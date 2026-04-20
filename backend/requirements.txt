@@ -1,14 +1,16 @@
-fastapi==0.115.*
-uvicorn[standard]
-sqlalchemy[asyncio]
-asyncpg
-pydantic-settings
-pydantic
-httpx
-numpy
-scipy
-scikit-learn
-alembic
-tqdm
-rich
-slowapi
+# Production runtime dependencies.
+# Minor-version pins give deterministic builds while allowing patch updates.
+fastapi>=0.115,<0.116
+uvicorn[standard]>=0.30,<0.41
+sqlalchemy[asyncio]>=2.0,<2.1
+asyncpg>=0.29,<0.32
+pydantic-settings>=2.5,<3.0
+pydantic>=2.8,<3.0
+httpx>=0.27,<0.30
+numpy>=1.26,<3.0
+scipy>=1.13,<2.0
+scikit-learn>=1.5,<2.0
+alembic>=1.13,<2.0
+tqdm>=4.66,<5.0
+rich>=13.7,<15.0
+slowapi>=0.1.9,<0.2

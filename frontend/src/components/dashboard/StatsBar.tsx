@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Info } from "lucide-react";
 import { LivePulse } from "@/components/globe";
 import type { StatsResponse } from "@/lib/types";
 
@@ -45,13 +46,42 @@ function useCountUp(target: number, duration = 1500): number {
 }
 
 /**
- * A single stat card in the stats bar.
+ * Data transparency badge — tells reviewers the data is synthetic.
  *
- * @param label - Stat label text.
- * @param value - Numeric value (animated count-up).
- * @param suffix - Optional suffix (e.g., "%").
- * @returns Styled stat card element.
+ * Hover reveals a tooltip with methodology context. This is deliberately
+ * visible at all times so no reviewer comes away thinking the numbers
+ * were fabricated.
  */
+function DataSourceBadge() {
+  return (
+    <div className="relative group hidden md:block">
+      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-bg-elevated border border-border-subtle text-[11px] text-text-secondary">
+        <Info size={12} className="text-accent-cyan" />
+        <span>Synthetic demo data</span>
+      </div>
+      <div
+        role="tooltip"
+        className="absolute right-0 top-full mt-2 w-64 p-3 rounded-lg glass text-[11px] text-text-secondary leading-relaxed opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-[60]"
+      >
+        Calibrated to published GPS interference reports from C4ADS and
+        EUROCONTROL. The detection pipeline is real — the same code runs on
+        live OpenSky Network data when enabled.
+      </div>
+    </div>
+  );
+}
+
+/** Format an ISO-ish date string as "Oct 2025". Falls back to the raw value. */
+function formatDate(raw: string): string {
+  try {
+    const d = new Date(raw);
+    if (Number.isNaN(d.valueOf())) return raw;
+    return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  } catch {
+    return raw;
+  }
+}
+
 function StatCard({ label, value, suffix = "" }: { label: string; value: number; suffix?: string }) {
   const animated = useCountUp(value);
   return (
@@ -89,17 +119,20 @@ export function StatsBar({ stats }: { stats: StatsResponse | null }) {
         <StatCard label="Active Zones" value={stats.live.active_zones} />
         <StatCard label="Aircraft Affected" value={stats.total_aircraft_affected} />
         <div className="hidden md:flex flex-col items-center px-4">
-          <span className="text-xs text-text-primary">
-            {stats.date_range.start} — {stats.date_range.end}
+          <span className="text-xs font-mono-numbers text-text-primary">
+            {formatDate(stats.date_range.start)} — {formatDate(stats.date_range.end)}
           </span>
           <span className="text-[10px] text-text-muted uppercase tracking-wider">Analysis Period</span>
         </div>
       </div>
 
-      <LivePulse
-        status={stats.live.poll_status}
-        lastPoll={stats.live.last_poll}
-      />
+      <div className="flex items-center gap-3">
+        <DataSourceBadge />
+        <LivePulse
+          status={stats.live.poll_status}
+          lastPoll={stats.live.last_poll}
+        />
+      </div>
     </div>
   );
 }

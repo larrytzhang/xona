@@ -35,8 +35,10 @@ Thumbs.db
 
 # Testing
 .coverage
+coverage/
 htmlcov/
 .pytest_cache/
+*.tsbuildinfo
 
 # Linting
 .ruff_cache/
@@ -55,8 +57,16 @@ htmlcov/
 # Credentials / keys — catch common patterns
 *.pem
 *.key
+*.p12
+*.pfx
+secrets.json
+secrets.*.json
 credentials.json
+credentials.*.json
 serviceaccount.json
+service-account.json
+id_rsa
+id_ed25519
 
 # Checkpoint files from scripts
 historical_checkpoint.json
