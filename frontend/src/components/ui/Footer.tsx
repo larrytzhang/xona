@@ -5,7 +5,7 @@ const GITHUB_URL =
   process.env.NEXT_PUBLIC_GITHUB_URL || "https://github.com/larrytzhang/xona";
 const LINKEDIN_URL =
   process.env.NEXT_PUBLIC_LINKEDIN_URL || "https://www.linkedin.com/in/larryzhang225/";
-const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "larryzhang225@gmail.com";
+const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "larry_zhang@college.harvard.edu";
 const API_DOCS_URL =
   (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/docs";
 
@@ -21,9 +21,6 @@ export function Footer() {
       <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <div className="text-text-primary font-medium">Built by Larry Zhang</div>
-          <div className="text-xs mt-1">
-            Harvard undergrad · Built because I want to help Xona Space Systems solve this problem.
-          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-4 text-xs">
