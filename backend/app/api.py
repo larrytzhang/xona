@@ -111,7 +111,13 @@ def _zone_to_response(zone: InterferenceZone) -> dict:
 
 @router.get("/api/zones/live", response_model=ZonesLiveResponse)
 async def get_zones_live(
-    hours_back: int = Query(default=24, ge=1, le=168, description="Hours to look back"),
+    hours_back: int = Query(
+        default=24,
+        ge=1,
+        # One year cap. Frontend offers 24h / 7d (168h) / 30d (720h) / All time (8760h).
+        le=8760,
+        description="Hours to look back (1-8760, i.e. up to 1 year)",
+    ),
 ) -> dict:
     """
     Get currently active interference zones.
