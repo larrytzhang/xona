@@ -5,7 +5,11 @@ Loads settings from environment variables via pydantic-settings.
 All configuration for the backend process lives here.
 
 Environment variables:
-    DATABASE_URL: PostgreSQL connection string (asyncpg). REQUIRED.
+    DATABASE_URL: PostgreSQL connection string. REQUIRED. Accepts any of:
+        - postgres://...          (Heroku-style)
+        - postgresql://...        (psql default; Neon console gives you this)
+        - postgresql+asyncpg://.. (already canonical)
+        Any sslmode/channel_binding query params are normalized for asyncpg.
     OPENSKY_USERNAME: OpenSky Network username (optional).
     OPENSKY_PASSWORD: OpenSky Network password (optional).
     POLL_INTERVAL_SECONDS: Live polling interval, default 22.
@@ -13,8 +17,59 @@ Environment variables:
     LOG_LEVEL: Logging level, default INFO.
 """
 
-from pydantic import SecretStr
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _normalize_postgres_url(url: str) -> str:
+    """
+    Rewrite any Postgres URL to the async-SQLAlchemy form expected by asyncpg.
+
+    This makes the app accept the raw connection string Neon/Railway/Heroku
+    hand you in their consoles — no manual URL surgery at deploy time.
+
+    Transformations:
+        - Scheme: ``postgres://`` and ``postgresql://`` become ``postgresql+asyncpg://``.
+          An existing ``+<driver>`` suffix (e.g. ``+asyncpg``) is left alone.
+        - Query: ``sslmode=<libpq-mode>`` is translated to asyncpg's ``ssl=`` kwarg.
+          ``channel_binding`` is a libpq concept asyncpg doesn't understand, so
+          it is dropped silently rather than crashing at engine creation.
+
+    Empty input is passed through unchanged (keeps pydantic's error messages clean).
+    """
+    if not url:
+        return url
+
+    # Normalize the scheme. We only rewrite when no driver is specified;
+    # anything like ``postgresql+psycopg2://`` is left untouched.
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://"):]
+    if url.startswith("postgresql://") and not url.startswith("postgresql+"):
+        url = "postgresql+asyncpg://" + url[len("postgresql://"):]
+
+    parsed = urlparse(url)
+
+    # Translate or drop query params that are libpq-only.
+    new_pairs: list[tuple[str, str]] = []
+    for key, value in parse_qsl(parsed.query, keep_blank_values=False):
+        if key == "sslmode":
+            # Map libpq sslmode values to asyncpg's ssl kwarg.
+            if value in {"require", "verify-ca", "verify-full", "prefer"}:
+                new_pairs.append(("ssl", "require"))
+            elif value in {"disable", "allow"}:
+                new_pairs.append(("ssl", "false"))
+            else:
+                new_pairs.append(("ssl", value))
+        elif key == "channel_binding":
+            # asyncpg does not implement SCRAM channel binding negotiation
+            # the way libpq does — drop silently so Neon's default URLs work.
+            continue
+        else:
+            new_pairs.append((key, value))
+
+    return urlunparse(parsed._replace(query=urlencode(new_pairs)))
 
 
 class Settings(BaseSettings):
@@ -43,6 +98,12 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     # Rate limiting: requests per minute per IP for API endpoints.
     RATE_LIMIT: str = "60/minute"
+
+    @field_validator("DATABASE_URL", mode="after")
+    @classmethod
+    def _normalize_database_url(cls, v: str) -> str:
+        """Normalize any Postgres URL to asyncpg form at startup."""
+        return _normalize_postgres_url(v)
 
     @property
     def cors_origin_list(self) -> list[str]:
