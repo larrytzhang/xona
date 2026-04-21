@@ -1,7 +1,10 @@
 # GPS Shield Backend — Production Dockerfile.
 #
 # Builds a slim Python 3.12 image with all backend dependencies.
-# Runs the FastAPI app via uvicorn on port 8000.
+# Runs the FastAPI app via uvicorn on $PORT (defaults to 8000 locally).
+#
+# Honoring $PORT lets the image run unchanged on Railway, Fly.io, Render,
+# Heroku, and other PaaS platforms that inject their routing port.
 #
 # Build:   docker build -t gps-shield-backend .
 # Run:     docker run -p 8000:8000 --env-file .env gps-shield-backend
@@ -28,7 +31,10 @@ COPY --chown=appuser:appuser . .
 # Switch to non-root user for runtime
 USER appuser
 
-# Run database migrations on startup, then start the server
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Run database migrations on startup, then start the server.
+# ${PORT:-8000} uses the platform-injected PORT if set, else falls back
+# to 8000 for local `docker run`.
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
 
+# Document the default port. Actual listening port is controlled by $PORT.
 EXPOSE 8000
